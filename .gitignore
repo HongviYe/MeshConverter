@@ -1,13 +1,4 @@
-# Extern
-/extern/.cache
-/extern/cli11
-/extern/fmt
-/extern/geogram
-/extern/libigl
-/extern/spdlog
-
 # Build
-src/ispc/energy.h
 *build*/*
 .idea/*
 .vscode/
