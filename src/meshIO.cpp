@@ -176,7 +176,7 @@ int MESHIO::readMESH(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &
             dimension = stoi(words[1]);
             std::cout << "Reading mesh dimension - " << dimension << std::endl;
         }
-        if(line.find("Vertices") != std::string::npos) {
+        if(line == "Vertices") {
             words = seperate_string(line);
             if(words.size() > 1 || words[0].length() > 8)
                 continue;
@@ -208,13 +208,16 @@ int MESHIO::readMESH(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &
             words = seperate_string(line);
             nFacets = stoi(words[0]);
             std::cout << "Number of facets : " << nFacets << std::endl;
-            T.resize(nFacets, 3);
+            T.resize(nFacets, 4);
             int i = 0;
             while(i < nFacets) {
                 mesh_file.getline(buffer, 256);
                 words = seperate_string(std::string(buffer));
-                if(words.size() < 3) continue;
-                for(int j = 0; j < 3; j++)
+                if(words.size() < 4)
+                {
+                    std::cout << "Warning : The number of triangles element is not equal 4.\n";
+                }
+                for(int j = 0; j < 4; j++)
                     T(i, j) = std::stoi(words[j]) - 1;
                 i++;
             }
@@ -282,5 +285,27 @@ int MESHIO::writePLY(std::string filename, const Eigen::MatrixXd &V, const Eigen
     for(int i = 0; i < T.rows(); i++)
         plyfile << T.cols() << " " << T(i, 0) << " " << T(i, 1) << " " << T(i, 2) << std::endl;
     plyfile.close();
+    return 1;
+}
+
+
+int MESHIO::writePLS(std::string filename, const Eigen::MatrixXd &V, const Eigen::MatrixXi &T)
+{
+    if(T.cols() != 4)
+    {
+        std::cout << "Unsupported format for .pls file." << std::endl;
+        return -1;
+    }
+    std::cout << "Writing mesh to - " << filename << std::endl;
+    std::ofstream plsfile;
+    plsfile.open(filename);
+    plsfile << T.rows() << " " << V.rows() << " " << "0 0 0 0\n";
+    for(int i = 0; i < V.rows(); i++)
+        plsfile << i + 1 << " " << V(i, 0) << " " << V(i, 1) << " " << V(i, 2) << std::endl;
+    for(int i = 0; i < T.rows(); i++)
+        plsfile << i + 1 << " " << T(i, 0) << " " << T(i, 1) << " " << T(i, 2) << " " << T(i, 3) << std::endl; 
+        
+    plsfile.close();
+    std::cout << "Finish\n";
     return 1;
 }

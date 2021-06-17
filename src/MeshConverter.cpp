@@ -10,10 +10,12 @@ int main(int argc, char** argv) {
     bool exportMESH = false;
     bool exportVTK = false;
     bool exportPLY = false;
+    bool exportPLS = false;
     app.add_option("-i", input_filename, "input filename. (string, required)")->required();
     app.add_flag("-k", exportVTK, "Write mesh in VTK format.");
     app.add_flag("-m", exportMESH, "Write mesh in MESH/MEDIT format.");
     app.add_flag("-y", exportPLY, "Write mesh in PLY format.");
+    app.add_flag("-s", exportPLS, "Write mesh in PLS format.");
     
     try {
         app.parse(argc, argv);
@@ -48,6 +50,10 @@ int main(int argc, char** argv) {
     if(exportPLY) { 
         string output_filename = input_filename.substr(0, input_dotpos) + ".o.ply";
         MESHIO::writePLY(output_filename, V, F);
+    }
+    if(exportPLS){
+        string output_filename = input_filename.substr(0, input_dotpos) + ".o.pls";
+        MESHIO::writePLS(output_filename, V, F);
     }
 
     return 0;

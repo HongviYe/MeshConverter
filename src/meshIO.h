@@ -12,7 +12,9 @@ int readMESH(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &T);
 int writeMESH(std::string filename, const Eigen::MatrixXd &V, const Eigen::MatrixXi &T);
 int readPLY(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &T);
 int writePLY(std::string filename, const Eigen::MatrixXd &V, const Eigen::MatrixXi &T);
+int writePLS(std::string filename, const Eigen::MatrixXd &V, const Eigen::MatrixXi &T);
 
 }
 
 #endif
+ 
