@@ -301,7 +301,7 @@ int MESHIO::writePLS(std::string filename, const Eigen::MatrixXd &V, const Eigen
     for(int i = 0; i < V.rows(); i++)
         plsfile << i + 1 << " " << V(i, 0) << " " << V(i, 1) << " " << V(i, 2) << std::endl;
     for(int i = 0; i < T.rows(); i++)
-        plsfile << i + 1 << " " << T(i, 0) << " " << T(i, 1) << " " << T(i, 2) << " " << T(i, 3) << std::endl; 
+        plsfile << i + 1 << " " << T(i, 0) + 1 << " " << T(i, 1) + 1 << " " << T(i, 2) + 1 << " " << T(i, 3) + 1 << std::endl;
         
     plsfile.close();
     std::cout << "Finish\n";
