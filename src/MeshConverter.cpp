@@ -11,11 +11,13 @@ int main(int argc, char** argv) {
     bool exportVTK = false;
     bool exportPLY = false;
     bool exportPLS = false;
+	bool exportfacet = false;
     app.add_option("-i", input_filename, "input filename. (string, required)")->required();
     app.add_flag("-k", exportVTK, "Write mesh in VTK format.");
     app.add_flag("-m", exportMESH, "Write mesh in MESH/MEDIT format.");
     app.add_flag("-y", exportPLY, "Write mesh in PLY format.");
     app.add_flag("-s", exportPLS, "Write mesh in PLS format.");
+	app.add_flag("-f", exportfacet, "Write mesh in facet format.");
     
     try {
         app.parse(argc, argv);
@@ -34,6 +36,8 @@ int main(int argc, char** argv) {
         MESHIO::readVTK(input_filename, V, F, M);
     else if(input_postfix == "mesh")
         MESHIO::readMESH(input_filename, V, F);
+	else if (input_postfix == "pls")
+		MESHIO::readPLS(input_filename, V, F, M);
     else {
         cout << "Unsupported input format - " << input_postfix << endl;
         return -1;
@@ -55,6 +59,9 @@ int main(int argc, char** argv) {
         string output_filename = input_filename.substr(0, input_dotpos) + ".o.pls";
         MESHIO::writePLS(output_filename, V, F);
     }
-
+	if (exportfacet) {
+		string output_filename = input_filename.substr(0, input_dotpos) + ".o.facet";
+		MESHIO::writeFacet(output_filename, V, F, M);
+	}
     return 0;
 }

@@ -123,7 +123,7 @@ int MESHIO::writeVTK(std::string filename, const Eigen::MatrixXd &V, const Eigen
     for(int i = 0; i < T.rows(); i++) {
         f << T.cols() << " ";
         for(int j = 0; j < T.cols(); j++)
-            f << T(i, j) << " ";
+            f <<  T(i, j) << " ";
         f << std::endl;
     }
     f << "CELL_TYPES " << T.rows() << std::endl;
@@ -287,8 +287,6 @@ int MESHIO::writePLY(std::string filename, const Eigen::MatrixXd &V, const Eigen
     plyfile.close();
     return 1;
 }
-
-
 int MESHIO::writePLS(std::string filename, const Eigen::MatrixXd &V, const Eigen::MatrixXi &T)
 {
     if(T.cols() != 4)
@@ -308,4 +306,67 @@ int MESHIO::writePLS(std::string filename, const Eigen::MatrixXd &V, const Eigen
     plsfile.close();
     std::cout << "Finish\n";
     return 1;
+}
+int MESHIO::readPLS(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &T,Eigen::MatrixXi &M) {
+	std::ifstream plsfile;
+	plsfile.open(filename);
+	if (!plsfile.is_open()) {
+		std::cout << "No such file. - " << filename << std::endl;
+		return -1;
+	}
+	int nPoints = 0;
+	int nFacets = 0;
+
+	auto& pls_file = plsfile;
+	std::string str;
+	std::getline(pls_file, str);
+	std::stringstream ss(str);
+	ss >> nFacets >> nPoints;
+	V.resize(nPoints,3);
+	for (int i = 0; i < nPoints; i++) {
+		int index;
+		double point_coordinate[3];
+		pls_file >> index >> point_coordinate[0] >> point_coordinate[1] >> point_coordinate[2];
+		for(int k=0;k<3;k++)
+		V(index-1,k)=point_coordinate[k];
+	}
+	M.resize(nFacets,1);
+	T.resize(nFacets, 3);
+	for (int i = 0; i < nFacets; i++) {
+		int index;
+		int tri[3];
+		pls_file >> index >> tri[0] >> tri[1] >> tri[2] >> M(i,0);
+		tri[0]--; tri[1]--; tri[2]--;
+		for (int k = 0; k < 3; k++)
+			T(i, k) = tri[k];
+	}
+
+	return 1;
+}
+
+int MESHIO::writeFacet(std::string filename, const Eigen::MatrixXd & V, const Eigen::MatrixXi & T, const Eigen::MatrixXi M)
+{
+	if (T.cols() != 3) {
+		std::cout << "Unsupported format for .ply file." << std::endl;
+		return -1;
+	}
+	std::cout << "Writing mesh to - " << filename << std::endl;
+	std::ofstream facetfile;
+	facetfile.open(filename);
+	facetfile << "FACET FILE V3.0  exported from Meshconverter http://10.12.220.71/tools/meshconverter " << std::endl;
+	facetfile << 1 << std::endl;
+	facetfile << "Grid" << std::endl;
+	facetfile << "0, 0.00 0.00 0.00 0.00" << endl;
+	facetfile << V.rows() << endl;
+	for (int i = 0; i < V.rows(); i++)
+		facetfile << V(i, 0) << " " << V(i, 1) << " " << V(i, 2) << std::endl;
+	facetfile << 1 << endl;
+	facetfile << "Triangles" << endl;
+	facetfile << T.rows() << " 3" << endl;
+
+	for (int i = 0; i < T.rows(); i++) {
+		facetfile << " " << T(i, 0) + 1 << " " << T(i, 1) + 1 << " " << T(i, 2) + 1 << " 0 " << M(i, 0) << " " << i + 1 << std::endl;
+		//std::cout  << " " << T(i, 0) + 1 << " " << T(i, 1) + 1 << " " << T(i, 2) + 1 << " 0 " << M(i, 0) << " " << i + 1 << std::endl;
+	}
+	return 0;
 }
