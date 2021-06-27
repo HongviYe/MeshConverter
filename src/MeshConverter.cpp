@@ -39,7 +39,7 @@ int main(int argc, char** argv) {
     if(input_postfix == "vtk")
         MESHIO::readVTK(input_filename, V, F, M);
     else if(input_postfix == "mesh")
-        MESHIO::readMESH(input_filename, V, F);
+        MESHIO::readMESH(input_filename, V, F, M);
 	else if (input_postfix == "pls")
 		MESHIO::readPLS(input_filename, V, F, M);
     else {
@@ -70,7 +70,7 @@ int main(int argc, char** argv) {
     }
     if(exportPLS){
         string output_filename = input_filename.substr(0, input_dotpos) + ".o.pls";
-        MESHIO::writePLS(output_filename, V, F);
+        MESHIO::writePLS(output_filename, V, F, M);
     }
 	if (exportfacet) {
 		string output_filename = input_filename.substr(0, input_dotpos) + ".o.facet";

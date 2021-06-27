@@ -153,7 +153,7 @@ int MESHIO::writeVTK(std::string filename, const Eigen::MatrixXd &V, const Eigen
     return 1;
 }
 
-int MESHIO::readMESH(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &T) {
+int MESHIO::readMESH(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &T, Eigen::MatrixXi &M) {
     std::ifstream mesh_file;
     mesh_file.open(filename);
     if(!mesh_file.is_open()) {
@@ -208,7 +208,8 @@ int MESHIO::readMESH(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &
             words = seperate_string(line);
             nFacets = stoi(words[0]);
             std::cout << "Number of facets : " << nFacets << std::endl;
-            T.resize(nFacets, 4);
+            T.resize(nFacets, 3);
+            M.resize(nFacets, 1);
             int i = 0;
             while(i < nFacets) {
                 mesh_file.getline(buffer, 256);
@@ -217,8 +218,9 @@ int MESHIO::readMESH(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &
                 {
                     std::cout << "Warning : The number of triangles element is not equal 4.\n";
                 }
-                for(int j = 0; j < 4; j++)
+                for(int j = 0; j < 3; j++)
                     T(i, j) = std::stoi(words[j]) - 1;
+                M(i, 0) = std::stoi(words[3]) - 1;
                 i++;
             }
         }
@@ -287,7 +289,7 @@ int MESHIO::writePLY(std::string filename, const Eigen::MatrixXd &V, const Eigen
     plyfile.close();
     return 1;
 }
-int MESHIO::writePLS(std::string filename, const Eigen::MatrixXd &V, const Eigen::MatrixXi &T)
+int MESHIO::writePLS(std::string filename, const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, const Eigen::MatrixXi M)
 {
     if(T.cols() != 4)
     {
@@ -301,7 +303,7 @@ int MESHIO::writePLS(std::string filename, const Eigen::MatrixXd &V, const Eigen
     for(int i = 0; i < V.rows(); i++)
         plsfile << i + 1 << " " << V(i, 0) << " " << V(i, 1) << " " << V(i, 2) << std::endl;
     for(int i = 0; i < T.rows(); i++)
-        plsfile << i + 1 << " " << T(i, 0) + 1 << " " << T(i, 1) + 1 << " " << T(i, 2) + 1 << " " << T(i, 3) + 1 << std::endl;
+        plsfile << i + 1 << " " << T(i, 0) + 1 << " " << T(i, 1) + 1 << " " << T(i, 2) + 1 << " " << M(i, 0) + 1 << std::endl;
         
     plsfile.close();
     std::cout << "Finish\n";
@@ -346,10 +348,10 @@ int MESHIO::readPLS(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &T
 
 int MESHIO::writeFacet(std::string filename, const Eigen::MatrixXd & V, const Eigen::MatrixXi & T, const Eigen::MatrixXi M)
 {
-	if (T.cols() != 3) {
-		std::cout << "Unsupported format for .ply file." << std::endl;
-		return -1;
-	}
+//	if (T.cols() != 3) {
+//		std::cout << "Unsupported format for .ply file." << std::endl;
+//		return -1;
+//	}
 	std::cout << "Writing mesh to - " << filename << std::endl;
 	std::ofstream facetfile;
 	facetfile.open(filename);
