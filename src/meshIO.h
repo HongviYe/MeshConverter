@@ -16,6 +16,8 @@ int writePLY(std::string filename, const Eigen::MatrixXd &V, const Eigen::Matrix
 int writePLS(std::string filename, const Eigen::MatrixXd &V, const Eigen::MatrixXi &T);
 int readPLS(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &T, Eigen::MatrixXi &M);
 int writeFacet(std::string filename, const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, const Eigen::MatrixXi M );
+bool rotatePoint(vector<double> rotateVec, Eigen::MatrixXd &V, Eigen::MatrixXi &T);
+bool addBox(vector<double> boxVec, Eigen::MatrixXd &V, Eigen::MatrixXi &T);
 
 }
 

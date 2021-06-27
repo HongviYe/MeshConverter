@@ -13,6 +13,8 @@ int main(int argc, char** argv) {
     bool exportPLS = false;
 	bool exportfacet = false;
 	vector<double> rotateVec;
+	vector<double> boxVec;
+	app.add_option("-b", boxVec, "input bounding box. Format is (length, width, hight)");
 	app.add_option("-r", rotateVec, "input rotate param. Format is (start_x, start_y, start_z, end_x, end_y, end_z, angle) or (end_x, end_y, end_z, angle). angle value scale is (0, 2).");
     app.add_option("-i", input_filename, "input filename. (string, required)")->required();
     app.add_flag("-k", exportVTK, "Write mesh in VTK format.");
@@ -46,56 +48,13 @@ int main(int argc, char** argv) {
     }
 
 	//********* Rotate *********
-	double start_x = 0.0, start_y = 0.0, start_z = 0.0;
-	double end_x = 0.0, end_y = 0.0, end_z = 0.0;
-	double angle = 0.0;
-	if(rotateVec.size() > 0){
-		if(rotateVec.size() == 4) {
-			end_x = rotateVec[0];
-			end_y = rotateVec[1];
-			end_z = rotateVec[2];
-			angle = rotateVec[3];
-		}
-		else if(rotateVec.size() == 7){
-			start_x = rotateVec[0]; start_y = rotateVec[1]; start_z = rotateVec[2];
-			end_x = rotateVec[3]; end_y = rotateVec[4]; end_z = rotateVec[5];
-			angle = rotateVec[6];
-		}else{
-			std::cout << "The format is Error.Format is (start_x, start_y, start_z, end_x, end_y, end_z, angle) or (end_x, end_y, end_z, angle). angle value scale is (0, 2).";
-			return -1;
-		}
-	}
+	MESHIO::rotatePoint(rotateVec, V, F);
+	//******** Rotated *********
 
-	if(rotateVec.size() == 7) {
-		std::cout << "Rotating\n";
-		end_x -= start_x;
-		end_y -= start_y;
-		end_z -= start_z;
-		for (int i = 0; i < V.rows(); i++) {
-			V(i, 0) -= start_x;
-			V(i, 1) -= start_y;
-			V(i, 2) -= start_z;
-		}
-	}
-	if(rotateVec.size() > 0) {
-		Eigen::AngleAxisd rotationVector(M_PI * angle, Eigen::Vector3d(end_x, end_y, end_z));
-		Eigen::Matrix3d rotationMatrix = Eigen::Matrix3d::Identity();
-		rotationMatrix = rotationVector.toRotationMatrix();
+	//********* Add Box *********
+	MESHIO::addBox(boxVec, V, F);
+	//********* Add Box *********
 
-		std::cout << rotationMatrix << '\n';
-
-		Eigen::MatrixXd tmp = rotationMatrix * V.transpose();
-		V = tmp.transpose();
-	}
-	if(rotateVec.size() == 7){
-		for(int i = 0; i < V.rows(); i++){
-			V(i, 0) += start_x;
-			V(i, 1) += start_y;
-			V(i, 2) += start_z;
-		}
-		std::cout << "Rotated\n";
-	}
-	//******** Rotated ********
 
     if(exportVTK) {
         string output_filename = input_filename.substr(0, input_dotpos) + ".o.vtk";
