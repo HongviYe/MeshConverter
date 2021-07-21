@@ -5,6 +5,9 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#ifndef M_PI
+#define M_PI 3.141592653589793
+#endif
 using namespace std;
 namespace MESHIO{
 int readVTK(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &T, Eigen::MatrixXi &M, std::string mark_pattern = "");

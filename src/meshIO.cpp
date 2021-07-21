@@ -93,10 +93,14 @@ int MESHIO::readVTK(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &T
             if(data_type != mark_pattern) 
                 continue;
             M.resize(nFacets, 1);
+			for (int i = 0; i < nFacets; i++)
+				M(i, 0) = 0;
             vtk_file.getline(buffer, 256);
             for(int i = 0; i < nFacets; i++) {
                 vtk_file.getline(buffer, 256);
-                M.row(i) << stoi(std::string(buffer));
+				int surface_id=stoi(std::string(buffer));
+				M.row(i) << surface_id;
+					
             }
         }
     }
@@ -367,7 +371,12 @@ int MESHIO::writeFacet(std::string filename, const Eigen::MatrixXd & V, const Ei
 	facetfile << T.rows() << " 3" << endl;
 
 	for (int i = 0; i < T.rows(); i++) {
-		facetfile << " " << T(i, 0) + 1 << " " << T(i, 1) + 1 << " " << T(i, 2) + 1 << " 0 " << M(i, 0) << " " << i + 1 << std::endl;
+		facetfile << " " << T(i, 0) + 1 << " " << T(i, 1) + 1 << " " << T(i, 2) + 1 << " 0 ";
+		if (M.rows() >= T.rows())
+			facetfile << M(i, 0);
+		else
+			facetfile << 0;
+		facetfile<< " " << i + 1 << std::endl;
 		//std::cout  << " " << T(i, 0) + 1 << " " << T(i, 1) + 1 << " " << T(i, 2) + 1 << " 0 " << M(i, 0) << " " << i + 1 << std::endl;
 	}
 	return 0;
