@@ -1,6 +1,9 @@
 #include "meshIO.h"
 #include <iostream>
 #include <fstream>
+#include <algorithm>
+
+#define _DEBUG_
 
 /**
  * @brief Seperate string origin by given a set of patterns.
@@ -31,6 +34,38 @@ std::vector<std::string> seperate_string(std::string origin, std::vector<std::st
         }
     }
     return result;
+}
+
+int MESHIO::readEPS(std::string filename, vector<int> &L, double eps) {
+	std::ifstream eps_file;
+	eps_file.open(filename);
+	if(!eps_file.is_open()){
+		std::cout << "No Such file. - " << filename << std::endl;
+		return -1;
+	}
+	string line;
+	string _;
+	stringstream input;
+	while(getline(eps_file, line)){
+		input.clear();
+		input.str(line);
+		input >> _;
+		if(_[0] == '#') continue;
+		else if(_ == "eps" || _ == "EPS"){
+			input >> eps;
+		}
+		else if(_ == "id" || _ == "ID"){
+			int tmpId;
+			while (input >> tmpId)
+			{
+				L.push_back(tmpId);
+			}
+		}
+		else{
+			continue;
+		}
+	}
+	return 0;
 }
 
 int MESHIO::readVTK(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &T, Eigen::MatrixXi &M, std::string mark_pattern) {
@@ -152,6 +187,56 @@ int MESHIO::writeVTK(std::string filename, const Eigen::MatrixXd &V, const Eigen
     f.close();
     return 1;
 }
+
+int MESHIO::writeEpsVTK(std::string filename, const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, vector<int> L,const double eps, std::string mark_pattern) {
+	std::ofstream f(filename);
+	if(!f.is_open()) {
+		std::cout << "Write VTK file failed. - " << filename << std::endl;
+		return -1;
+	}
+	std::cout << "Writing mesh to - " << filename << std::endl;
+	f.precision(std::numeric_limits<double>::digits10 + 1);
+	f << "# vtk DataFile Version 2.0" << std::endl;
+	f << "TetWild Mesh" << std::endl;
+	f << "ASCII" << std::endl;
+	f << "DATASET UNSTRUCTURED_GRID" << std::endl;
+	f << "POINTS " << V.rows() << " double" << std::endl;
+	for(int i = 0; i < V.rows(); i++)
+		f << V(i, 0) << " " << V(i, 1) << " " << V(i, 2) << std::endl;
+	f << "CELLS " << V.rows() << " " << V.rows() * 2 << std::endl;
+	for(int i = 0; i < V.rows(); i++) {
+		f << 1 <<  " " << i ;
+		f << std::endl;
+	}
+	f << "CELL_TYPES " << V.rows() << std::endl;
+	int cellType = 1;
+	for(int i = 0; i < V.rows(); i++)
+		f << cellType << std::endl;
+
+	f << "CELL_DATA " << V.rows() << std::endl;
+	f << "SCALARS local_epsilon double 1" << std::endl;
+	f << "LOOKUP_TABLE default" << std::endl;
+
+	int curLoc = 0;
+
+	sort(L.begin(), L.end());
+	L.erase(unique(L.begin(), L.end()), L.end());
+
+	for(int i = 0; i < V.rows(); i++) {
+		if(curLoc < L.size() && L[curLoc] == i){
+			f << eps << std::endl;
+			curLoc++;
+		}
+		else{
+			f << -1 << std::endl;
+		}
+	}
+	f << std::endl;
+	f.close();
+	return 1;
+}
+
+
 
 int MESHIO::readMESH(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &T, Eigen::MatrixXi &M) {
     std::ifstream mesh_file;
@@ -291,7 +376,7 @@ int MESHIO::writePLY(std::string filename, const Eigen::MatrixXd &V, const Eigen
 }
 int MESHIO::writePLS(std::string filename, const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, const Eigen::MatrixXi M)
 {
-    if(T.cols() != 4)
+    if(T.cols() != 3)
     {
         std::cout << "Unsupported format for .pls file." << std::endl;
         return -1;
@@ -436,7 +521,7 @@ bool MESHIO::rotatePoint(vector<double> rotateVec, Eigen::MatrixXd &V, Eigen::Ma
  * @param T
  * @return
  */
-bool MESHIO::addBox(vector<double> boxVec, Eigen::MatrixXd &V, Eigen::MatrixXi &T)
+bool MESHIO::addBox(vector<double> boxVec, Eigen::MatrixXd &V, Eigen::MatrixXi &T, Eigen::MatrixXi &M)
 {
 	if(boxVec.size() == 0) return 0;
 
@@ -444,6 +529,7 @@ bool MESHIO::addBox(vector<double> boxVec, Eigen::MatrixXd &V, Eigen::MatrixXi &
 		std::cout << "the number of boxVec's param is not equal to 3." << std::endl;
 		return 0;
 	}
+
 
 	std::cout << "Boxing\n";
 
@@ -467,9 +553,13 @@ bool MESHIO::addBox(vector<double> boxVec, Eigen::MatrixXd &V, Eigen::MatrixXi &
 	double midx = tmpx[tmpid];
 	double midy = tmpy[tmpid];
 	double midz = tmpz[tmpid];
-	tmpx.clear(); tmpy.clear(); tmpz.clear();
 
 	std::cout << midx << " " << midy << " " << midz << '\n';
+	std::cout << tmpx[tmpx.size() - 1] - tmpx[0] << " " << tmpy[tmpy.size() - 1] - tmpy[0] << " " << \
+	tmpz[tmpz.size() - 1] - tmpz[0] << '\n';
+
+	tmpx.clear(); tmpy.clear(); tmpz.clear();
+
 
 	Eigen::MatrixXd tmpV;
 	tmpV.resize(V.rows() + 8, V.cols());
@@ -482,6 +572,11 @@ bool MESHIO::addBox(vector<double> boxVec, Eigen::MatrixXd &V, Eigen::MatrixXi &
 	for(int i = 0; i < T.rows(); i++)
 		for(int j = 0; j < T.cols(); j++)
 			tmpT(i, j) = T(i, j);
+
+	Eigen::MatrixXi tmpM;
+	tmpM.resize(M.rows() + 12, M.cols());
+	for(int i = 0; i < tmpM.cols(); i++)
+		tmpM(i, 0) = M(i, 0);
 
 
 	int V_index = V.rows();
@@ -529,7 +624,7 @@ bool MESHIO::addBox(vector<double> boxVec, Eigen::MatrixXd &V, Eigen::MatrixXi &
 		tmpT(i, 0) = V_index + boxTri[j + 0];
 		tmpT(i, 1) = V_index + boxTri[j + 1];
 		tmpT(i, 2) = V_index + boxTri[j + 2];
-		tmpT(i, 3) = T(T.rows() - 1, 3) + 1;
+		tmpM(i, 0) = M(T.rows() - 1, 0) + 1;
 	}
 
 
@@ -540,5 +635,17 @@ bool MESHIO::addBox(vector<double> boxVec, Eigen::MatrixXd &V, Eigen::MatrixXi &
 
 	std::cout << "Boxed\n";
 
+	return 1;
+}
+
+bool MESHIO::reverseOrient(Eigen::MatrixXi &T) {
+	std::cout << "Reversing\n";
+	for(int i = 0; i < T.cols(); i++)
+	{
+		int t = T(i, 0);
+		T(i, 0) = T(i, 2);
+		T(i, 2) = t;
+	}
+	std::cout << "reversed\n";
 	return 1;
 }
