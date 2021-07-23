@@ -268,7 +268,9 @@ int MESHIO::writePLY(std::string filename, const Eigen::MatrixXd &V, const Eigen
     }
     std::cout << "Writing mesh to - " << filename << std::endl;
     std::ofstream plyfile;
+
     plyfile.open(filename);
+	plyfile.precision(std::numeric_limits<double>::digits10 + 1);
     plyfile << "ply" << std::endl;
     plyfile << "format ascii 1.0" << std::endl;
     plyfile << "comment VTK generated PLY File" << std::endl;
@@ -353,6 +355,7 @@ int MESHIO::writeFacet(std::string filename, const Eigen::MatrixXd & V, const Ei
 	std::cout << "Writing mesh to - " << filename << std::endl;
 	std::ofstream facetfile;
 	facetfile.open(filename);
+	facetfile.precision(std::numeric_limits<double>::digits10 + 1);
 	facetfile << "FACET FILE V3.0  exported from Meshconverter http://10.12.220.71/tools/meshconverter " << std::endl;
 	facetfile << 1 << std::endl;
 	facetfile << "Grid" << std::endl;
@@ -363,7 +366,7 @@ int MESHIO::writeFacet(std::string filename, const Eigen::MatrixXd & V, const Ei
 	facetfile << 1 << endl;
 	facetfile << "Triangles" << endl;
 	facetfile << T.rows() << " 3" << endl;
-
+	
 	for (int i = 0; i < T.rows(); i++) {
 		facetfile << " " << T(i, 0) + 1 << " " << T(i, 1) + 1 << " " << T(i, 2) + 1 << " 0 " << M(i, 0) << " " << i + 1 << std::endl;
 		//std::cout  << " " << T(i, 0) + 1 << " " << T(i, 1) + 1 << " " << T(i, 2) + 1 << " 0 " << M(i, 0) << " " << i + 1 << std::endl;
