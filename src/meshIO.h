@@ -2,6 +2,7 @@
 #define MESHIO_H
 
 #include <Eigen/Dense>
+#include <map>
 #include <string>
 #include <iostream>
 #include <vector>
@@ -12,9 +13,9 @@
 using namespace std;
 namespace MESHIO{
 int readVTK(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &T, Eigen::MatrixXi &M, std::string mark_pattern = "");
-int readEPS(std::string filename, vector<int> &L, double eps);
+int readEPS(std::string filename, int& cou, std::map<int, double>& mpd, std::map<int, vector<int>>& mpi);
 int writeVTK(std::string filename, const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, const Eigen::MatrixXi M = Eigen::MatrixXi(), std::string mark_pattern = "");
-int writeEpsVTK(std::string filename, const Eigen::MatrixXd &V, const Eigen::MatrixXi &T,  vector<int> L , const double eps = 0.01, std::string mark_pattern = "");
+int writeEpsVTK(std::string filename, const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, int& cou, std::map<int, double>& mpd, std::map<int, vector<int>>& mpi, std::string mark_pattern = "");
 int readMESH(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &T, Eigen::MatrixXi &M);
 int writeMESH(std::string filename, const Eigen::MatrixXd &V, const Eigen::MatrixXi &T);
 int readPLY(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &T);
@@ -25,7 +26,7 @@ int writeFacet(std::string filename, const Eigen::MatrixXd &V, const Eigen::Matr
 bool rotatePoint(vector<double> rotateVec, Eigen::MatrixXd &V, Eigen::MatrixXi &T);
 bool addBox(vector<double> boxVec, Eigen::MatrixXd &V, Eigen::MatrixXi &T, Eigen::MatrixXi &M);
 bool reverseOrient(Eigen::MatrixXi &T);
-
+bool repair(Eigen::MatrixXd &V, Eigen::MatrixXi &T,Eigen::MatrixXi M = Eigen::MatrixXi());
 }
 
 #endif

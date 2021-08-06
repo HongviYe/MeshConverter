@@ -11,25 +11,27 @@ int main(int argc, char** argv) {
     string input_filename;
 	string input_filename_ex;
 	bool exportMESH = false;
-    bool exportVTK = false;
-    bool exportPLY = false;
-    bool exportPLS = false;
+	bool exportVTK = false;
+	bool exportPLY = false;
+	bool exportPLS = false;
 	bool exportfacet = false;
 	bool exportEpsVTK = false;
 	bool reverseFacetOrient = false;
+	bool repairVtk = false;
 	vector<double> rotateVec;
 	vector<double> boxVec;
 	app.add_option("-b", boxVec, "input bounding box. Format is (length, width, hight)");
 	app.add_option("-r", rotateVec, "input rotate param. Format is (start_x, start_y, start_z, end_x, end_y, end_z, angle) or (end_x, end_y, end_z, angle). angle value scale is (0, 2).");
-    app.add_option("-i", input_filename, "input filename. (string, required)")->required();
+        app.add_option("-i", input_filename, "input filename. (string, required)")->required();
 	app.add_option("-p", input_filename_ex, "input filename. (string, required)");
 	app.add_flag("-k", exportVTK, "Write mesh in VTK format.");
 	app.add_flag("-e", exportEpsVTK, "Set eps in VTK format.");
 	app.add_flag("-o", reverseFacetOrient, "Reverse Facet Orient.");
 	app.add_flag("-m", exportMESH, "Write mesh in MESH/MEDIT format.");
-    app.add_flag("-y", exportPLY, "Write mesh in PLY format.");
-    app.add_flag("-s", exportPLS, "Write mesh in PLS format.");
+	app.add_flag("-y", exportPLY, "Write mesh in PLY format.");
+	app.add_flag("-s", exportPLS, "Write mesh in PLS format.");
 	app.add_flag("-f", exportfacet, "Write mesh in facet format.");
+	app.add_flag("--repair", repairVtk, "Repair vtk file for the area is equal to zero.");
 
     try {
         app.parse(argc, argv);
@@ -44,8 +46,9 @@ int main(int argc, char** argv) {
 	Eigen::MatrixXd V;
 	Eigen::MatrixXi F;
 	Eigen::MatrixXi M;
-	vector<int> L;
-	double eps = 0.01;
+	int cou;
+	std::map<int, double> mpd;
+	std::map<int, vector<int>> mpi;
 
     if(input_postfix == "vtk")
         MESHIO::readVTK(input_filename, V, F, M);
@@ -59,7 +62,7 @@ int main(int argc, char** argv) {
     }
 
     if(exportEpsVTK)
-    	MESHIO::readEPS(input_filename_ex, L, eps);
+    	MESHIO::readEPS(input_filename_ex, cou, mpd, mpi);
 
 
 	//********* Rotate *********
@@ -76,6 +79,14 @@ int main(int argc, char** argv) {
 	}
 	//********* modify facet orient ******
 
+	//********** repair ********
+
+	if(repairVtk){
+		MESHIO::repair(V, F, M);
+	}
+
+
+	//********** repair ********
 
 
     if(exportVTK) {
@@ -100,7 +111,7 @@ int main(int argc, char** argv) {
 	}
 	if(exportEpsVTK){
 		string output_filename = input_filename.substr(0, input_dotpos) + ".eps.vtk";
-		MESHIO::writeEpsVTK(output_filename, V, F, L, eps);
+		MESHIO::writeEpsVTK(output_filename, V, F, cou, mpd, mpi);
 	}
     return 0;
 }
