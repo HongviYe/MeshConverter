@@ -1,5 +1,6 @@
 #include "meshIO.h"
 #include "CLI11.hpp"
+#include "MeshOrient.h"
 #include "fstream"
 
 using namespace std;
@@ -12,6 +13,7 @@ int main(int argc, char** argv) {
     bool exportPLY = false;
     bool exportPLS = false;
 	bool exportfacet = false;
+	bool resetoritation = false;
 	vector<double> rotateVec;
 	vector<double> boxVec;
 	app.add_option("-b", boxVec, "input bounding box. Format is (length, width, hight)");
@@ -22,6 +24,7 @@ int main(int argc, char** argv) {
     app.add_flag("-y", exportPLY, "Write mesh in PLY format.");
     app.add_flag("-s", exportPLS, "Write mesh in PLS format.");
 	app.add_flag("-f", exportfacet, "Write mesh in facet format.");
+	app.add_flag("-p", resetoritation, "Regularize oritation");
     
     try {
         app.parse(argc, argv);
@@ -55,7 +58,13 @@ int main(int argc, char** argv) {
 	MESHIO::addBox(boxVec, V, F);
 	//********* Add Box *********
 
+	//********* Regularize mesh oritation *********
+	MESHIO::resetOrientation(V, F, M);
+	//********* Regularize mesh oritation *********
 
+
+
+	
     if(exportVTK) {
         string output_filename = input_filename.substr(0, input_dotpos) + ".o.vtk";
         MESHIO::writeVTK(output_filename, V, F, M);

@@ -295,7 +295,7 @@ int MESHIO::writePLY(std::string filename, const Eigen::MatrixXd &V, const Eigen
 }
 int MESHIO::writePLS(std::string filename, const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, const Eigen::MatrixXi M)
 {
-    if(T.cols() != 4)
+    if(T.cols() != 3)
     {
         std::cout << "Unsupported format for .pls file." << std::endl;
         return -1;
