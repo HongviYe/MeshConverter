@@ -1,6 +1,11 @@
 #include "meshIO.h"
 #include <iostream>
 #include <fstream>
+#include <map>
+#include <algorithm>
+#include <map>
+
+#define _DEBUG_
 
 /**
  * @brief Seperate string origin by given a set of patterns.
@@ -11,26 +16,45 @@
  */
 std::vector<std::string> seperate_string(std::string origin, std::vector<std::string> patterns = {" ", "\t"}) {
     std::vector<std::string> result;
-    if (origin.length() == 0) {
-        return result;
-    }
-    origin += patterns[0];
-    size_t startPos = origin.npos;
-    for (auto pt = patterns.begin(); pt != patterns.end(); pt++) {
-        startPos = (origin.find(*pt) < startPos) ? origin.find(*pt) : startPos;
-    }
-    size_t pos = startPos;
-    while (pos != origin.npos) {
-        std::string temp = origin.substr(0, pos);
-        if (temp.length())
-            result.push_back(temp);
-        origin = origin.substr(pos + 1, origin.size());
-        pos = origin.npos;
-        for (auto pt = patterns.begin(); pt != patterns.end(); pt++) {
-            pos = (origin.find(*pt) < pos) ? origin.find(*pt) : pos;
-        }
-    }
+    stringstream ss(origin);
+    while(ss >> origin) result.push_back(origin);
     return result;
+}
+
+int MESHIO::readEPS(std::string filename, int& cou, std::map<int, double>& mpd, std::map<int, vector<int>>& mpi) {
+	std::ifstream eps_file;
+	eps_file.open(filename);
+	if(!eps_file.is_open()){
+		std::cout << "No Such file. - " << filename << std::endl;
+		return -1;
+	}
+	string line;
+	string _;
+	stringstream input;
+    // int cou = 0;
+    // std::map<int, double> mpd;
+    // std::map<int, vector<int>> mpi;
+	while(getline(eps_file, line)){
+		input.clear();
+		input.str(line);
+		input >> _;
+		if(_[0] == '#') continue;
+		else if(_ == "eps" || _ == "EPS"){
+            cou++;
+			input >> mpd[cou];
+		}
+		else if(_ == "id" || _ == "ID"){
+			int tmpId;
+			while (input >> tmpId)
+			{
+				mpi[cou].push_back(tmpId);
+			}
+		}
+		else{
+			continue;
+		}
+	}
+	return 0;
 }
 
 int MESHIO::readVTK(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &T, Eigen::MatrixXi &M, std::string mark_pattern) {
@@ -157,6 +181,60 @@ int MESHIO::writeVTK(std::string filename, const Eigen::MatrixXd &V, const Eigen
     return 1;
 }
 
+int MESHIO::writeEpsVTK(std::string filename, const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, int& cou,  std::map<int, double> &mpd, std::map<int, vector<int>> &mpi, std::string mark_pattern) {
+
+	std::ofstream f(filename);
+	if(!f.is_open()) {
+		std::cout << "Write VTK file failed. - " << filename << std::endl;
+		return -1;
+	}
+	std::cout << "Writing mesh to - " << filename << std::endl;
+	f.precision(std::numeric_limits<double>::digits10 + 1);
+	f << "# vtk DataFile Version 2.0" << std::endl;
+	f << "TetWild Mesh" << std::endl;
+	f << "ASCII" << std::endl;
+	f << "DATASET UNSTRUCTURED_GRID" << std::endl;
+	f << "POINTS " << V.rows() << " double" << std::endl;
+	for(int i = 0; i < V.rows(); i++)
+		f << V(i, 0) << " " << V(i, 1) << " " << V(i, 2) << std::endl;
+	f << "CELLS " << V.rows() << " " << V.rows() * 2 << std::endl;
+	for(int i = 0; i < V.rows(); i++) {
+		f << 1 <<  " " << i ;
+		f << std::endl;
+	}
+	f << "CELL_TYPES " << V.rows() << std::endl;
+	int cellType = 1;
+	for(int i = 0; i < V.rows(); i++)
+		f << cellType << std::endl;
+
+	f << "CELL_DATA " << V.rows() << std::endl;
+	f << "SCALARS local_epsilon double 1" << std::endl;
+	f << "LOOKUP_TABLE default" << std::endl;
+
+	int curLoc = 0;
+
+    vector<double> vec;
+    vec.resize(V.rows(), -1);
+    for(int i = 1; i <= cou; i++)
+    {
+        for(int id : mpi[i]){
+            vec[id] = mpd[i];
+        }
+    }
+
+	for(int i = 0; i < V.rows(); i++) {
+		f << vec[i] << endl;
+        if(vec[i] != -1){
+            std::cout << i << " " << vec[i] << '\n';
+        }
+	}
+	f << std::endl;
+	f.close();
+	return 1;
+}
+
+
+
 int MESHIO::readMESH(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &T, Eigen::MatrixXi &M) {
     std::ifstream mesh_file;
     mesh_file.open(filename);
@@ -274,7 +352,9 @@ int MESHIO::writePLY(std::string filename, const Eigen::MatrixXd &V, const Eigen
     }
     std::cout << "Writing mesh to - " << filename << std::endl;
     std::ofstream plyfile;
+
     plyfile.open(filename);
+	plyfile.precision(std::numeric_limits<double>::digits10 + 1);
     plyfile << "ply" << std::endl;
     plyfile << "format ascii 1.0" << std::endl;
     plyfile << "comment VTK generated PLY File" << std::endl;
@@ -359,6 +439,7 @@ int MESHIO::writeFacet(std::string filename, const Eigen::MatrixXd & V, const Ei
 	std::cout << "Writing mesh to - " << filename << std::endl;
 	std::ofstream facetfile;
 	facetfile.open(filename);
+	facetfile.precision(std::numeric_limits<double>::digits10 + 1);
 	facetfile << "FACET FILE V3.0  exported from Meshconverter http://10.12.220.71/tools/meshconverter " << std::endl;
 	facetfile << 1 << std::endl;
 	facetfile << "Grid" << std::endl;
@@ -369,7 +450,7 @@ int MESHIO::writeFacet(std::string filename, const Eigen::MatrixXd & V, const Ei
 	facetfile << 1 << endl;
 	facetfile << "Triangles" << endl;
 	facetfile << T.rows() << " 3" << endl;
-
+	
 	for (int i = 0; i < T.rows(); i++) {
 		facetfile << " " << T(i, 0) + 1 << " " << T(i, 1) + 1 << " " << T(i, 2) + 1 << " 0 ";
 		if (M.rows() >= T.rows())
@@ -445,7 +526,7 @@ bool MESHIO::rotatePoint(vector<double> rotateVec, Eigen::MatrixXd &V, Eigen::Ma
  * @param T
  * @return
  */
-bool MESHIO::addBox(vector<double> boxVec, Eigen::MatrixXd &V, Eigen::MatrixXi &T)
+bool MESHIO::addBox(vector<double> boxVec, Eigen::MatrixXd &V, Eigen::MatrixXi &T, Eigen::MatrixXi &M)
 {
 	if(boxVec.size() == 0) return 0;
 
@@ -453,6 +534,7 @@ bool MESHIO::addBox(vector<double> boxVec, Eigen::MatrixXd &V, Eigen::MatrixXi &
 		std::cout << "the number of boxVec's param is not equal to 3." << std::endl;
 		return 0;
 	}
+
 
 	std::cout << "Boxing\n";
 
@@ -476,9 +558,13 @@ bool MESHIO::addBox(vector<double> boxVec, Eigen::MatrixXd &V, Eigen::MatrixXi &
 	double midx = tmpx[tmpid];
 	double midy = tmpy[tmpid];
 	double midz = tmpz[tmpid];
-	tmpx.clear(); tmpy.clear(); tmpz.clear();
 
 	std::cout << midx << " " << midy << " " << midz << '\n';
+	std::cout << tmpx[tmpx.size() - 1] - tmpx[0] << " " << tmpy[tmpy.size() - 1] - tmpy[0] << " " << \
+	tmpz[tmpz.size() - 1] - tmpz[0] << '\n';
+
+	tmpx.clear(); tmpy.clear(); tmpz.clear();
+
 
 	Eigen::MatrixXd tmpV;
 	tmpV.resize(V.rows() + 8, V.cols());
@@ -491,6 +577,11 @@ bool MESHIO::addBox(vector<double> boxVec, Eigen::MatrixXd &V, Eigen::MatrixXi &
 	for(int i = 0; i < T.rows(); i++)
 		for(int j = 0; j < T.cols(); j++)
 			tmpT(i, j) = T(i, j);
+
+	Eigen::MatrixXi tmpM;
+	tmpM.resize(M.rows() + 12, M.cols());
+	for(int i = 0; i < tmpM.cols(); i++)
+		tmpM(i, 0) = M(i, 0);
 
 
 	int V_index = V.rows();
@@ -538,7 +629,7 @@ bool MESHIO::addBox(vector<double> boxVec, Eigen::MatrixXd &V, Eigen::MatrixXi &
 		tmpT(i, 0) = V_index + boxTri[j + 0];
 		tmpT(i, 1) = V_index + boxTri[j + 1];
 		tmpT(i, 2) = V_index + boxTri[j + 2];
-		tmpT(i, 3) = T(T.rows() - 1, 3) + 1;
+		tmpM(i, 0) = M(T.rows() - 1, 0) + 1;
 	}
 
 
@@ -550,4 +641,121 @@ bool MESHIO::addBox(vector<double> boxVec, Eigen::MatrixXd &V, Eigen::MatrixXi &
 	std::cout << "Boxed\n";
 
 	return 1;
+}
+
+bool MESHIO::reverseOrient(Eigen::MatrixXi &T) {
+	std::cout << "Reversing\n";
+	for(int i = 0; i < T.cols(); i++)
+	{
+		int t = T(i, 0);
+		T(i, 0) = T(i, 2);
+		T(i, 2) = t;
+	}
+	std::cout << "reversed\n";
+	return 1;
+}
+
+bool MESHIO::repair( Eigen::MatrixXd &V,  Eigen::MatrixXi &T, Eigen::MatrixXi M)
+{
+
+    std::cout << "Vertex number is  " << V.rows() << " X " << V.cols() << "  before clean. \n";
+    std::cout << "Cell number is  " << T.rows() << " X " << T.cols() << "  before clean. \n";
+    std::cout << "Attribute number is  " << M.rows() << " X " << M.cols() << "  before clean. \n";
+    // 检测面积为0的单元个数
+
+    Eigen::MatrixXd Tri;
+    Tri.resize(3, 3);
+    vector<int> emptyTri;
+    for(int i = 0; i < T.rows(); i++)
+    {
+        for(int j = 0; j < 3; j++)
+        {
+            Tri(j, 0) = V(T(i, j), 0);
+            Tri(j, 1) = V(T(i, j), 1);
+            Tri(j, 2) = V(T(i, j), 2);
+        }
+        Eigen::Vector3d lin1(Tri(1, 0) - Tri(0, 0), Tri(1, 1) - Tri(0, 1), Tri(1, 2) - Tri(0, 2));
+        Eigen::Vector3d lin2(Tri(2, 0) - Tri(0, 0), Tri(2, 1) - Tri(0, 1), Tri(2, 2) - Tri(0, 2));
+
+        Eigen::Vector3d crossResult = lin1.cross(lin2);
+        double area = crossResult.norm();
+        if(area < 1e-8)
+        {
+            emptyTri.push_back(i);
+        }
+    }
+
+    std::cout << "There are " << emptyTri.size() << " cells whose area is equal to zero.\n";
+
+    // 去除面积为0的单元
+
+    struct node
+    {
+        int oldid;
+        Eigen::Vector3d point;
+    };
+    vector<node> vec(V.rows(), node());
+    map<int, int> mpid;
+
+    for(int i = 0; i < V.rows(); i++)
+    {
+        vec[i].oldid = i;
+        vec[i].point = V.row(i);
+    }
+
+    sort(vec.begin(), vec.end(), [](const node& a, const node& b)
+    {
+        if( a.point.x() != b.point.x() ) return a.point.x() < b.point.x();
+        if( a.point.y() != b.point.y() ) return a.point.y() < b.point.y();
+        if( a.point.z() != b.point.z() ) return a.point.z() < b.point.z();
+        return a.oldid < b.oldid;
+    });
+
+    int curid = 0;
+    for(int i = 0; i < vec.size(); i++)
+    {
+        while( i + 1 < vec.size() && (vec[i].point - vec[i + 1].point).norm() < 1e-8 )
+        {
+            mpid[vec[i].oldid] = curid;
+            i++;
+        }
+        mpid[vec[i].oldid] = curid;
+        curid++;
+    }
+
+    V.resize(curid, V.cols());
+
+    for(int i = 0; i < vec.size(); i++)
+    {
+        V.row(mpid[ vec[i].oldid ]) = vec[i].point;
+        while( i + 1 < vec.size() && (vec[i].point - vec[i + 1].point).norm() < 1e-8 ) i++;
+    }
+
+    Eigen::MatrixXi T2;
+    Eigen::MatrixXi M2;
+    T2.resize(T.rows() - emptyTri.size(), T.cols());
+    M2.resize(T.rows() - emptyTri.size(), M.cols());
+
+    int locT2 = 0, locEmptyTri = 0;
+    for(int i = 0; i < T.rows(); i++)
+    {
+        if(emptyTri[locEmptyTri] == i)
+        {
+            locEmptyTri++;
+            continue;
+        }
+        for(int j = 0; j < T.cols(); j++)
+        {
+            T2(locT2, j) = mpid[T(i, j)];
+        }
+        locT2++;
+    }
+
+    T = T2;
+    // M = M2;
+
+    std::cout << "Vertex number is  " << V.rows() << " X " << V.cols() << "  after clean. \n";
+    std::cout << "Cell number is  " << T.rows() << " X " << T.cols() << "  after clean. \n";
+    std::cout << "Attribute number is  " << M.rows() << " X " << M.cols() << "  after clean. \n";
+    std::cout << "Clean all cell whose area is equal to zero. " << '\n';
 }
