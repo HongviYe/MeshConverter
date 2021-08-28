@@ -758,4 +758,5 @@ bool MESHIO::repair( Eigen::MatrixXd &V,  Eigen::MatrixXi &T, Eigen::MatrixXi M)
     std::cout << "Cell number is  " << T.rows() << " X " << T.cols() << "  after clean. \n";
     std::cout << "Attribute number is  " << M.rows() << " X " << M.cols() << "  after clean. \n";
     std::cout << "Clean all cell whose area is equal to zero. " << '\n';
+	return 0;
 }

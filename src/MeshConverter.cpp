@@ -8,7 +8,7 @@
 using namespace std;
 
 int main(int argc, char** argv) {
-    CLI::App app{"VTK to PLY"};
+    CLI::App app{"MeshConveter"};
     string input_filename;
 	string input_filename_ex;
 	bool exportMESH = false;
@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
 	vector<double> boxVec;
 	app.add_option("-b", boxVec, "input bounding box. Format is (length, width, hight)");
 	app.add_option("-r", rotateVec, "input rotate param. Format is (start_x, start_y, start_z, end_x, end_y, end_z, angle) or (end_x, end_y, end_z, angle). angle value scale is (0, 2).");
-        app.add_option("-i", input_filename, "input filename. (string, required)")->required();
+    app.add_option("-i", input_filename, "input filename. (string, required)")->required();
 	app.add_option("-p", input_filename_ex, "input filename. (string, required)");
 	app.add_flag("-k", exportVTK, "Write mesh in VTK format.");
 	app.add_flag("-e", exportEpsVTK, "Set eps in VTK format.");
@@ -34,9 +34,7 @@ int main(int argc, char** argv) {
 	app.add_flag("-y", exportPLY, "Write mesh in PLY format.");
 	app.add_flag("-s", exportPLS, "Write mesh in PLS format.");
 	app.add_flag("-f", exportfacet, "Write mesh in facet format.");
-
-	app.add_flag("-p", resetoritation, "Regularize oritation");
-
+	app.add_flag("--orient", resetoritation, "Regularize oritation");
 	app.add_flag("--repair", repairVtk, "Repair vtk file for the area is equal to zero.");
 
     try {
@@ -72,18 +70,20 @@ int main(int argc, char** argv) {
 
 
 	//********* Rotate *********
+	if(!rotateVec.empty())
 	MESHIO::rotatePoint(rotateVec, V, F);
 	//******** Rotated *********
 
 	//********* Add Box *********
-	MESHIO::addBox(boxVec, V, F, M);
+	if(!boxVec.empty())
+		MESHIO::addBox(boxVec, V, F, M);
 	//********* Add Box *********
 
-<<<<<<< HEAD
 	//********* Regularize mesh oritation *********
+	if(resetoritation)
 	MESHIO::resetOrientation(V, F, M);
 	//********* Regularize mesh oritation *********
-=======
+
 	//********* modify facet orient ******
 	if(reverseFacetOrient){
 		MESHIO::reverseOrient(F);
@@ -99,7 +99,7 @@ int main(int argc, char** argv) {
 
 	//********** repair ********
 
->>>>>>> 76e51152c05b280c7272ac3e4d22245b8f0918d8
+
 
 
 
