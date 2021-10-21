@@ -31,8 +31,6 @@ int MESHIO::resetOrientation(Eigen::MatrixXd &V, Eigen::MatrixXi &F, Eigen::Matr
 		blockMark[i] = M(i,0);
 	}
 
-
-
 	sfMesh mesh(point_list, facet_list);
 	if (!mesh.isManifold) {
 		cout << "Reset Orientation failed. Input mesh is non-manifold." << endl;
@@ -58,8 +56,6 @@ int MESHIO::resetOrientation(Eigen::MatrixXd &V, Eigen::MatrixXi &F, Eigen::Matr
 	for (int i = 0; i < M.rows(); i++) {
 		M(i, 0) = blockMark[i];
 	}
-
-
 
 	return 1;
 }

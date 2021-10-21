@@ -13,13 +13,14 @@ int main(int argc, char** argv) {
 	string input_filename_ex;
 	bool exportMESH = false;
 	bool exportVTK = false;
+	bool exportEpsVTK = false;
 	bool exportPLY = false;
 	bool exportPLS = false;
-	bool exportfacet = false;
-	bool resetoritation = false;
-	bool exportEpsVTK = false;
+	bool exportFacet = false;
+	bool exportOBJ = false;
+	bool resetOritation = false;
 	bool reverseFacetOrient = false;
-	bool repairVtk = false;
+	bool meshRepair = false;
 
 	vector<double> rotateVec;
 	vector<double> boxVec;
@@ -29,13 +30,14 @@ int main(int argc, char** argv) {
 	app.add_option("-p", input_filename_ex, "input filename. (string, required)");
 	app.add_flag("-k", exportVTK, "Write mesh in VTK format.");
 	app.add_flag("-e", exportEpsVTK, "Set eps in VTK format.");
-	app.add_flag("-o", reverseFacetOrient, "Reverse Facet Orient.");
 	app.add_flag("-m", exportMESH, "Write mesh in MESH/MEDIT format.");
 	app.add_flag("-y", exportPLY, "Write mesh in PLY format.");
 	app.add_flag("-s", exportPLS, "Write mesh in PLS format.");
-	app.add_flag("-f", exportfacet, "Write mesh in facet format.");
-	app.add_flag("--orient", resetoritation, "Regularize oritation");
-	app.add_flag("--repair", repairVtk, "Repair vtk file for the area is equal to zero.");
+	app.add_flag("-f", exportFacet, "Write mesh in facet format.");
+	app.add_flag("-o", exportOBJ, "Write mesh in OBJ format.");
+	app.add_flag("--reverse-orient", reverseFacetOrient, "Reverse Facet Orient.");
+	app.add_flag("--reset-orient", resetOritation, "Regularize oritation");
+	app.add_flag("--repair", meshRepair, "Repair vtk file for the area is equal to zero.");
 
     try {
         app.parse(argc, argv);
@@ -45,7 +47,6 @@ int main(int argc, char** argv) {
 
 	size_t input_dotpos = input_filename.find_last_of('.');
 	string input_postfix = input_filename.substr(input_dotpos + 1, input_filename.length() - input_dotpos - 1);
-
 
 	Eigen::MatrixXd V;
 	Eigen::MatrixXi F;
@@ -68,42 +69,28 @@ int main(int argc, char** argv) {
     if(exportEpsVTK)
     	MESHIO::readEPS(input_filename_ex, cou, mpd, mpi);
 
-
 	//********* Rotate *********
 	if(!rotateVec.empty())
 	MESHIO::rotatePoint(rotateVec, V, F);
-	//******** Rotated *********
 
 	//********* Add Box *********
 	if(!boxVec.empty())
 		MESHIO::addBox(boxVec, V, F, M);
-	//********* Add Box *********
 
 	//********* Regularize mesh oritation *********
-	if(resetoritation)
+	if(resetOritation)
 	MESHIO::resetOrientation(V, F, M);
-	//********* Regularize mesh oritation *********
 
 	//********* modify facet orient ******
 	if(reverseFacetOrient){
 		MESHIO::reverseOrient(F);
 	}
-	//********* modify facet orient ******
 
 	//********** repair ********
-
-	if(repairVtk){
+	if(meshRepair){
 		MESHIO::repair(V, F, M);
 	}
 
-
-	//********** repair ********
-
-
-
-
-
-	
     if(exportVTK) {
         string output_filename = input_filename.substr(0, input_dotpos) + ".o.vtk";
         MESHIO::writeVTK(output_filename, V, F, M);
@@ -120,7 +107,7 @@ int main(int argc, char** argv) {
         string output_filename = input_filename.substr(0, input_dotpos) + ".o.pls";
         MESHIO::writePLS(output_filename, V, F, M);
     }
-	if (exportfacet) {
+	if (exportFacet) {
 		string output_filename = input_filename.substr(0, input_dotpos) + ".o.facet";
 		MESHIO::writeFacet(output_filename, V, F, M);
 	}
@@ -128,5 +115,10 @@ int main(int argc, char** argv) {
 		string output_filename = input_filename.substr(0, input_dotpos) + ".eps.vtk";
 		MESHIO::writeEpsVTK(output_filename, V, F, cou, mpd, mpi);
 	}
+	if(exportOBJ) {
+		string output_filename = input_filename.substr(0, input_dotpos) + ".o.obj";
+		MESHIO::writeOBJ(output_filename, V, F);
+	}
+
     return 0;
 }

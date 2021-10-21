@@ -1,20 +1,18 @@
 #include "meshIO.h"
+#include <algorithm>
 #include <iostream>
 #include <fstream>
-#include <map>
-#include <algorithm>
-#include <map>
+#include <time.h>
 
-#define _DEBUG_
+using namespace std;
 
 /**
  * @brief Seperate string origin by given a set of patterns.
  * 
  * @param origin 
- * @param patterns If it meets one of the patterns, delete the charactor and split it from this index.
  * @return std::vector<std::string> 
  */
-std::vector<std::string> seperate_string(std::string origin, std::vector<std::string> patterns = {" ", "\t"}) {
+std::vector<std::string> seperate_string(std::string origin) {
     std::vector<std::string> result;
     stringstream ss(origin);
     while(ss >> origin) result.push_back(origin);
@@ -182,7 +180,6 @@ int MESHIO::writeVTK(std::string filename, const Eigen::MatrixXd &V, const Eigen
 }
 
 int MESHIO::writeEpsVTK(std::string filename, const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, int& cou,  std::map<int, double> &mpd, std::map<int, vector<int>> &mpi, std::string mark_pattern) {
-
 	std::ofstream f(filename);
 	if(!f.is_open()) {
 		std::cout << "Write VTK file failed. - " << filename << std::endl;
@@ -232,8 +229,6 @@ int MESHIO::writeEpsVTK(std::string filename, const Eigen::MatrixXd &V, const Ei
 	f.close();
 	return 1;
 }
-
-
 
 int MESHIO::readMESH(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &T, Eigen::MatrixXi &M) {
     std::ifstream mesh_file;
@@ -345,6 +340,7 @@ int MESHIO::writeMESH(std::string filename, const Eigen::MatrixXd &V, const Eige
     f.close();
     return 1;
 }
+
 int MESHIO::writePLY(std::string filename, const Eigen::MatrixXd &V, const Eigen::MatrixXi &T) {
     if(T.cols() != 3) {
         std::cout << "Unsupported format for .ply file." << std::endl;
@@ -373,6 +369,7 @@ int MESHIO::writePLY(std::string filename, const Eigen::MatrixXd &V, const Eigen
     plyfile.close();
     return 1;
 }
+
 int MESHIO::writePLS(std::string filename, const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, const Eigen::MatrixXi M)
 {
     if(T.cols() != 3)
@@ -393,6 +390,7 @@ int MESHIO::writePLS(std::string filename, const Eigen::MatrixXd &V, const Eigen
     std::cout << "Finish\n";
     return 1;
 }
+
 int MESHIO::readPLS(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &T,Eigen::MatrixXi &M) {
 	std::ifstream plsfile;
 	plsfile.open(filename);
@@ -432,10 +430,6 @@ int MESHIO::readPLS(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &T
 
 int MESHIO::writeFacet(std::string filename, const Eigen::MatrixXd & V, const Eigen::MatrixXi & T, const Eigen::MatrixXi M)
 {
-//	if (T.cols() != 3) {
-//		std::cout << "Unsupported format for .ply file." << std::endl;
-//		return -1;
-//	}
 	std::cout << "Writing mesh to - " << filename << std::endl;
 	std::ofstream facetfile;
 	facetfile.open(filename);
@@ -458,10 +452,57 @@ int MESHIO::writeFacet(std::string filename, const Eigen::MatrixXd & V, const Ei
 		else
 			facetfile << 0;
 		facetfile<< " " << i + 1 << std::endl;
-		//std::cout  << " " << T(i, 0) + 1 << " " << T(i, 1) + 1 << " " << T(i, 2) + 1 << " 0 " << M(i, 0) << " " << i + 1 << std::endl;
 	}
 	return 0;
 }
+
+int MESHIO::writeOBJ(string filename, const Eigen::MatrixXd& V, const Eigen::MatrixXi& F) {
+	cout << "Writing mesh to - " << filename << endl;
+	ofstream objFile;
+	objFile.open(filename);
+	objFile.precision(std::numeric_limits<double>::digits10 + 1);
+
+    // Get current time.
+    std::string export_time;
+    char stime[256] = {0};
+    time_t now_time;
+    time(&now_time);
+    strftime(stime,sizeof(stime),"%H:%M:%S",localtime(&now_time));
+    export_time = stime + '\0';
+
+    // Header 
+    objFile << "# TIGER Mesh converter. (c) 2021." << endl;
+    objFile << "# Created File: " << export_time << endl;
+    objFile << "# " << endl;
+    objFile << "# object default" << endl;
+    objFile << "# " << endl;
+    objFile << endl;
+
+    // Write points
+    for(int i = 0; i < V.rows(); i++) {
+        objFile << "v";
+        for(int j = 0; j < V.cols(); j++) {
+            objFile << " " << V(i, j);
+        }
+        objFile << endl;
+    }
+    objFile << "# " << V.rows() << " vertices" << endl << endl;
+
+    // Write facets 
+    for(int i = 0; i < F.rows(); i++) {
+        objFile << "f";
+        for(int j = 0; j < F.cols(); j++) {
+            objFile << " " << F(i, j) + 1;
+        }
+        objFile << endl;
+    }
+    objFile << "# " << F.rows() << " faces" << endl << endl;
+
+    objFile.close();
+
+    return 1;
+}
+
 /**
  * the start point is (start_x, start_y, start_z), the orient is (end_x, end_y, end_z), angle is PI * angle. angle \in (0, 2).
  * @param rotateVec is the param of rotate.
