@@ -4,6 +4,8 @@
 #include <fstream>
 #include <time.h>
 
+#define BUFFER_LENGTH 256
+
 using namespace std;
 
 /**
@@ -66,9 +68,9 @@ int MESHIO::readVTK(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &T
         return -1;
     }
     std::string vtk_type_str = "POLYDATA ";
-    char buffer[256];
+    char buffer[BUFFER_LENGTH];
     while(!vtk_file.eof()) {
-        vtk_file.getline(buffer, 256);
+        vtk_file.getline(buffer, BUFFER_LENGTH);
         std::string line = (std::string)buffer;
         if(line.length() < 2 || buffer[0] == '#')
             continue;
@@ -87,7 +89,7 @@ int MESHIO::readVTK(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &T
             nPoints = stoi(words[1]);
             V.resize(nPoints, 3);
             for(int i = 0; i < nPoints; i++) {
-                vtk_file.getline(buffer, 256);
+                vtk_file.getline(buffer, BUFFER_LENGTH);
                 words = seperate_string(std::string(buffer));
                 V.row(i) << stod(words[0]), stod(words[1]), stod(words[2]);
             }
@@ -97,7 +99,7 @@ int MESHIO::readVTK(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &T
             nFacets = stoi(words[1]);
             T.resize(nFacets, stoi(words[2]) / nFacets - 1);
             for(int i = 0; i < nFacets; i++) {
-                vtk_file.getline(buffer, 256);
+                vtk_file.getline(buffer, BUFFER_LENGTH);
                 words = seperate_string(std::string(buffer));
                 for(int j = 0; j < stoi(words[0]); j++) 
                     T(i, j) = stoi(words[j + 1]);
@@ -110,16 +112,16 @@ int MESHIO::readVTK(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &T
                 std::cout << "Ignore CELL_DATA" << std::endl;
                 return 0;
             }
-            vtk_file.getline(buffer, 256);
+            vtk_file.getline(buffer, BUFFER_LENGTH);
             std::string data_type = seperate_string(std::string(buffer))[1];
             if(data_type != mark_pattern) 
                 continue;
             M.resize(nFacets, 1);
 			for (int i = 0; i < nFacets; i++)
 				M(i, 0) = 0;
-            vtk_file.getline(buffer, 256);
+            vtk_file.getline(buffer, BUFFER_LENGTH);
             for(int i = 0; i < nFacets; i++) {
-                vtk_file.getline(buffer, 256);
+                vtk_file.getline(buffer, BUFFER_LENGTH);
 				int surface_id=stoi(std::string(buffer));
 				M.row(i) << surface_id;
 					
@@ -127,6 +129,80 @@ int MESHIO::readVTK(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &T
         }
     }
     vtk_file.close();
+    return 1;
+}
+
+int MESHIO::readOBJ(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &T, Eigen::MatrixXi &M) {
+    ifstream objFile;
+    objFile.open(filename);
+    if(!objFile.is_open()) {
+        std::cout << "No such file. - " << filename << std::endl;
+        return -1;
+    }
+    char buffer[BUFFER_LENGTH];
+    vector<vector<double>> plist;
+    vector<vector<int>> flist;
+    vector<int> mlist;
+    int curMark = 0;
+    while(!objFile.eof()) {
+        objFile.getline(buffer, BUFFER_LENGTH);
+        if(buffer[0] == 'v') {
+            vector<string> words = seperate_string(string(buffer));
+            if(words.size() < 4) {
+                continue;
+            }
+            vector<double> coord;
+            for(int ii = 1; ii < 4; ii++) {
+                int wordLen = 0;
+                while(wordLen < words[ii].length()) {
+                    if(words[ii][wordLen] == '/') {
+                        break;
+                    }
+                }
+                coord.push_back(stod(words[ii].substr(0, wordLen)));
+            }
+            plist.push_back(coord);
+        }
+        if(buffer[0] == 'f') {
+            vector<string> words = seperate_string(string(buffer));
+            if(words.size() < 4) {
+                continue;
+            }
+            vector<int> facet;
+            for(int ii = 1; ii < 4; ii++) {
+                int wordLen = 0;
+                while(wordLen < words[ii].length()) {
+                    if(words[ii][wordLen] == '/') {
+                        break;
+                    }
+                }
+                facet.push_back(stoi(words[ii].substr(0, wordLen)));
+            }
+            flist.push_back(facet);
+            mlist.push_back(curMark);
+        }
+        if(buffer[0] == 'g') {
+            ++curMark;
+        }
+    }
+
+    V.resize(plist.size(), 3);
+    for(int i = 0; i < plist.size(); i++) {
+        for(int j = 0; j < 3; j++) {
+            V(i, j) = plist[i][j];
+        }
+    }
+    T.resize(flist.size(), 3);
+    for(int i = 0; i < flist.size(); i++) {
+        for(int j = 0; j < 3; j++) {
+            T(i, j) = flist[i][j];
+        }
+    }
+    M.resize(mlist.size(), 1);
+    for(int i = 0; i < mlist.size(); i++) {
+        M(i, 0) = mlist[i];
+    }
+
     return 1;
 }
 
@@ -240,9 +316,9 @@ int MESHIO::readMESH(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &
     int dimension = 3;
     int nPoints;
     int nFacets;
-    char buffer[256];
+    char buffer[BUFFER_LENGTH];
     while(!mesh_file.eof()) {
-        mesh_file.getline(buffer, 256);
+        mesh_file.getline(buffer, BUFFER_LENGTH);
         std::string line = (std::string)buffer;
         if(line.length() < 2)
             continue;
@@ -259,7 +335,7 @@ int MESHIO::readMESH(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &
                 continue;
             line.clear();
             while(line.empty()) {
-                mesh_file.getline(buffer, 256);
+                mesh_file.getline(buffer, BUFFER_LENGTH);
                 line = (std::string)buffer;
             }
             words = seperate_string(line);
@@ -268,7 +344,7 @@ int MESHIO::readMESH(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &
             V.resize(nPoints, dimension);
             int i = 0;
             while(i < nPoints) {
-                mesh_file.getline(buffer, 256);
+                mesh_file.getline(buffer, BUFFER_LENGTH);
                 words = seperate_string(std::string(buffer));
                 if(words.size() != (dimension + 1)) continue;
                 for(int j = 0; j < dimension; j++)
@@ -279,7 +355,7 @@ int MESHIO::readMESH(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &
         if(line.find("Triangles") != std::string::npos) {
             line.clear();
             while(line.empty()) {
-                mesh_file.getline(buffer, 256);
+                mesh_file.getline(buffer, BUFFER_LENGTH);
                 line = (std::string)buffer;
             }
             words = seperate_string(line);
@@ -289,7 +365,7 @@ int MESHIO::readMESH(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &
             M.resize(nFacets, 1);
             int i = 0;
             while(i < nFacets) {
-                mesh_file.getline(buffer, 256);
+                mesh_file.getline(buffer, BUFFER_LENGTH);
                 words = seperate_string(std::string(buffer));
                 if(words.size() < 4)
                 {
@@ -370,7 +446,7 @@ int MESHIO::writePLY(std::string filename, const Eigen::MatrixXd &V, const Eigen
     return 1;
 }
 
-int MESHIO::writePLS(std::string filename, const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, const Eigen::MatrixXi M)
+int MESHIO::writePLS(std::string filename, const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, const Eigen::MatrixXi &M)
 {
     if(T.cols() != 3)
     {
@@ -428,7 +504,7 @@ int MESHIO::readPLS(std::string filename, Eigen::MatrixXd &V, Eigen::MatrixXi &T
 	return 1;
 }
 
-int MESHIO::writeFacet(std::string filename, const Eigen::MatrixXd & V, const Eigen::MatrixXi & T, const Eigen::MatrixXi M)
+int MESHIO::writeFacet(std::string filename, const Eigen::MatrixXd & V, const Eigen::MatrixXi & T, const Eigen::MatrixXi &M)
 {
 	std::cout << "Writing mesh to - " << filename << std::endl;
 	std::ofstream facetfile;
@@ -456,7 +532,22 @@ int MESHIO::writeFacet(std::string filename, const Eigen::MatrixXd & V, const Ei
 	return 0;
 }
 
-int MESHIO::writeOBJ(string filename, const Eigen::MatrixXd& V, const Eigen::MatrixXi& F) {
+int MESHIO::writeOBJ(string filename, const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, const Eigen::MatrixXi &M) {
+    // Facet group
+    bool doGroup = (M.rows() == F.rows());
+    vector<vector<int>> flist;
+    for(int i = 0; i < F.rows(); i++) {
+        vector<int> facet;
+        facet.push_back(doGroup ? M(i, 0) : 0);
+        for(int j = 0; j < F.cols(); j++) {
+            facet.push_back(F(i, j));
+        }
+        flist.push_back(facet);
+    }
+    if(doGroup) {
+        sort(flist.begin(), flist.end(), [](vector<int> A, vector<int> B){ return A[0] < B[0]; });
+    }
+
 	cout << "Writing mesh to - " << filename << endl;
 	ofstream objFile;
 	objFile.open(filename);
@@ -464,7 +555,7 @@ int MESHIO::writeOBJ(string filename, const Eigen::MatrixXd& V, const Eigen::Mat
 
     // Get current time.
     std::string export_time;
-    char stime[256] = {0};
+    char stime[BUFFER_LENGTH] = {0};
     time_t now_time;
     time(&now_time);
     strftime(stime,sizeof(stime),"%H:%M:%S",localtime(&now_time));
@@ -488,14 +579,21 @@ int MESHIO::writeOBJ(string filename, const Eigen::MatrixXd& V, const Eigen::Mat
     }
     objFile << "# " << V.rows() << " vertices" << endl << endl;
 
-    // Write facets 
-    for(int i = 0; i < F.rows(); i++) {
+    // Write facets with groups
+    int curGroup = INT_MIN;
+    for(int i = 0; i < flist.size(); i++) {
+        if(flist[i][0] != curGroup) {
+            curGroup = flist[i][0];
+            objFile << "g " << curGroup << endl;
+        }
         objFile << "f";
-        for(int j = 0; j < F.cols(); j++) {
-            objFile << " " << F(i, j) + 1;
+        for(int j = 1; j < flist[i].size(); j++) {
+            objFile << " " << flist[i][j] + 1;
         }
         objFile << endl;
     }
+
+    // Write facets 
     objFile << "# " << F.rows() << " faces" << endl << endl;
 
     objFile.close();
@@ -590,9 +688,9 @@ bool MESHIO::addBox(vector<double> boxVec, Eigen::MatrixXd &V, Eigen::MatrixXi &
 		tmpz.push_back(V(i, 2));
 	}
 
-	sort(tmpx.begin(), tmpx.end());
-	sort(tmpy.begin(), tmpy.end());
-	sort(tmpz.begin(), tmpz.end());
+	std::sort(tmpx.begin(), tmpx.end());
+	std::sort(tmpy.begin(), tmpy.end());
+	std::sort(tmpz.begin(), tmpz.end());
 
 	int tmpid = V.rows() / 2;
 
@@ -744,7 +842,7 @@ bool MESHIO::repair( Eigen::MatrixXd &V,  Eigen::MatrixXi &T, Eigen::MatrixXi M)
         vec[i].point = V.row(i);
     }
 
-    sort(vec.begin(), vec.end(), [](const node& a, const node& b)
+    std::sort(vec.begin(), vec.end(), [](const node& a, const node& b)
     {
         if( a.point.x() != b.point.x() ) return a.point.x() < b.point.x();
         if( a.point.y() != b.point.y() ) return a.point.y() < b.point.y();

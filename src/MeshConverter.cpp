@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
 	vector<double> boxVec;
 	app.add_option("-b", boxVec, "input bounding box. Format is (length, width, hight)");
 	app.add_option("-r", rotateVec, "input rotate param. Format is (start_x, start_y, start_z, end_x, end_y, end_z, angle) or (end_x, end_y, end_z, angle). angle value scale is (0, 2).");
-    app.add_option("-i", input_filename, "input filename. (string, required)")->required();
+    app.add_option("-i", input_filename, "input filename. (string, required, supported format: vtk, mesh, pls, obj)")->required();
 	app.add_option("-p", input_filename_ex, "input filename. (string, required)");
 	app.add_flag("-k", exportVTK, "Write mesh in VTK format.");
 	app.add_flag("-e", exportEpsVTK, "Set eps in VTK format.");
@@ -61,6 +61,8 @@ int main(int argc, char** argv) {
         MESHIO::readMESH(input_filename, V, F, M);
 	else if (input_postfix == "pls")
 		MESHIO::readPLS(input_filename, V, F, M);
+	else if (input_postfix == "obj")
+		MESHIO::readOBJ(input_filename, V, F, M);
     else {
         cout << "Unsupported input format - " << input_postfix << endl;
         return -1;
@@ -117,7 +119,7 @@ int main(int argc, char** argv) {
 	}
 	if(exportOBJ) {
 		string output_filename = input_filename.substr(0, input_dotpos) + ".o.obj";
-		MESHIO::writeOBJ(output_filename, V, F);
+		MESHIO::writeOBJ(output_filename, V, F, M);
 	}
 
     return 0;
