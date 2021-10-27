@@ -10,6 +10,6 @@ include(MeshConverterDownloadExternal)
 ###############################################################################
 
 # eigen
-if(NOT EIGEN_ROOT)
+if(NOT TARGET Eigen3::Eigen)
     meshconverter_download_eigen()
 endif()

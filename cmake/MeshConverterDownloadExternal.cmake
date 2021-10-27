@@ -24,7 +24,7 @@ endfunction()
 ## eigen
 function(meshconverter_download_eigen)
     meshconverter_download_project(eigen
-        GIT_REPOSITORY https://${GITHUB_REPOSITE}/eigenteam/eigen-git-mirror.git
+        GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
         GIT_TAG        3.3.7
     )
 endfunction()
