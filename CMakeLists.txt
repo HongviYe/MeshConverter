@@ -7,6 +7,8 @@ endif()
 set(SOURCES
     src/meshIO.h
     src/meshIO.cpp
+src/meshAlgorithm.cpp
+src/meshAlgorithm.h
 	src/MeshOrient.cpp
     src/MeshConverter.cpp)
 include_directories(./extern/cli11)

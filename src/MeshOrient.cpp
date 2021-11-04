@@ -11,8 +11,10 @@
 using namespace std;
 using namespace MESHIO;
 
-int MESHIO::resetOrientation(Eigen::MatrixXd &V, Eigen::MatrixXi &F, Eigen::MatrixXi &M){
-
+int MESHIO::resetOrientation(Mesh& mesh){
+	auto& M = mesh.Masks;
+	auto& V = mesh.Vertex;
+	auto& F = mesh.Topo;
 	vector<vector<double>> point_list(V.rows(), vector<double>(V.cols()));
 	vector<vector<int>> facet_list(F.rows(), vector<int>(F.cols()));
 	vector<int> blockMark(M.rows());
@@ -31,17 +33,17 @@ int MESHIO::resetOrientation(Eigen::MatrixXd &V, Eigen::MatrixXi &F, Eigen::Matr
 		blockMark[i] = M(i,0);
 	}
 
-	sfMesh mesh(point_list, facet_list);
-	if (!mesh.isManifold) {
+	sfMesh sfmesh(point_list, facet_list);
+	if (!sfmesh.isManifold) {
 		cout << "Reset Orientation failed. Input mesh is non-manifold." << endl;
 		return 0;
 	}
-	mesh.resetOrientation();
+	sfmesh.resetOrientation();
 	blockMark.resize(facet_list.size());
 	for (int i = 0; i < facet_list.size(); i++) {
 		for (int j = 0; j < 3; j++)
-			facet_list[i][j] = mesh.facets[i].form[j];
-		blockMark[i] = mesh.facets[i].blockId;
+			facet_list[i][j] = sfmesh.facets[i].form[j];
+		blockMark[i] = sfmesh.facets[i].blockId;
 	}
 	for (int i = 0; i < V.rows(); i++) {
 		for (int j = 0; j < V.cols(); j++) {

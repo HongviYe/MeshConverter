@@ -1,6 +1,7 @@
 #include "meshIO.h"
 #include "CLI11.hpp"
 #include "MeshOrient.h"
+#include "meshAlgorithm.h"
 #include "fstream"
 
 #define _DEBUG_ 1
@@ -48,21 +49,19 @@ int main(int argc, char** argv) {
 	size_t input_dotpos = input_filename.find_last_of('.');
 	string input_postfix = input_filename.substr(input_dotpos + 1, input_filename.length() - input_dotpos - 1);
 
-	Eigen::MatrixXd V;
-	Eigen::MatrixXi F;
-	Eigen::MatrixXi M;
+	Mesh mesh;
 	int cou;
 	std::map<int, double> mpd;
 	std::map<int, vector<int>> mpi;
 
     if(input_postfix == "vtk")
-        MESHIO::readVTK(input_filename, V, F, M);
+        MESHIO::readVTK(input_filename, mesh);
     else if(input_postfix == "mesh")
-        MESHIO::readMESH(input_filename, V, F, M);
+        MESHIO::readMESH(input_filename, mesh);
 	else if (input_postfix == "pls")
-		MESHIO::readPLS(input_filename, V, F, M);
+		MESHIO::readPLS(input_filename, mesh);
 	else if (input_postfix == "obj")
-		MESHIO::readOBJ(input_filename, V, F, M);
+		MESHIO::readOBJ(input_filename, mesh);
     else {
         cout << "Unsupported input format - " << input_postfix << endl;
         return -1;
@@ -73,53 +72,53 @@ int main(int argc, char** argv) {
 
 	//********* Rotate *********
 	if(!rotateVec.empty())
-	MESHIO::rotatePoint(rotateVec, V, F);
+	MESHIO::rotatePoint(rotateVec, mesh);
 
 	//********* Add Box *********
 	if(!boxVec.empty())
-		MESHIO::addBox(boxVec, V, F, M);
+		MESHIO::addBox(boxVec, mesh);
 
 	//********* Regularize mesh oritation *********
 	if(resetOritation)
-	MESHIO::resetOrientation(V, F, M);
+	MESHIO::resetOrientation(mesh);
 
 	//********* modify facet orient ******
 	if(reverseFacetOrient){
-		MESHIO::reverseOrient(F);
+		MESHIO::reverseOrient(mesh.Topo);
 	}
 
 	//********** repair ********
 	if(meshRepair){
-		MESHIO::repair(V, F, M);
+		MESHIO::repair(mesh);
 	}
 
     if(exportVTK) {
         string output_filename = input_filename.substr(0, input_dotpos) + ".o.vtk";
-        MESHIO::writeVTK(output_filename, V, F, M);
+        MESHIO::writeVTK(output_filename, mesh);
     }
     if(exportMESH) {
         string output_filename = input_filename.substr(0, input_dotpos) + ".o.mesh";
-        MESHIO::writeMESH(output_filename, V, F);
+        MESHIO::writeMESH(output_filename, mesh);
     }
     if(exportPLY) { 
         string output_filename = input_filename.substr(0, input_dotpos) + ".o.ply";
-        MESHIO::writePLY(output_filename, V, F);
+        MESHIO::writePLY(output_filename, mesh);
     }
     if(exportPLS){
         string output_filename = input_filename.substr(0, input_dotpos) + ".o.pls";
-        MESHIO::writePLS(output_filename, V, F, M);
+        MESHIO::writePLS(output_filename, mesh);
     }
 	if (exportFacet) {
 		string output_filename = input_filename.substr(0, input_dotpos) + ".o.facet";
-		MESHIO::writeFacet(output_filename, V, F, M);
+		MESHIO::writeFacet(output_filename, mesh);
 	}
 	if(exportEpsVTK){
 		string output_filename = input_filename.substr(0, input_dotpos) + ".eps.vtk";
-		MESHIO::writeEpsVTK(output_filename, V, F, cou, mpd, mpi);
+		MESHIO::writeEpsVTK(output_filename, mesh, cou, mpd, mpi);
 	}
 	if(exportOBJ) {
 		string output_filename = input_filename.substr(0, input_dotpos) + ".o.obj";
-		MESHIO::writeOBJ(output_filename, V, F, M);
+		MESHIO::writeOBJ(output_filename, mesh);
 	}
 
     return 0;

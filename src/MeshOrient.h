@@ -2,9 +2,9 @@
 #include <string>
 #include <iostream>
 #include <vector>
-
+#include "meshIO.h"
 
 namespace MESHIO {
-	int resetOrientation(Eigen::MatrixXd &V, Eigen::MatrixXi &F, Eigen::MatrixXi &M);
+	int resetOrientation(Mesh& mesh);
 };
 
