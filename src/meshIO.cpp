@@ -21,6 +21,13 @@ std::vector<std::string> seperate_string(std::string origin) {
     return result;
 }
 
+// The eps file format is 
+/* eps 0.005          
+ * id 1 5 7 9 100
+ * eps 0.008
+ * id 56 78 79
+ * ...
+ */
 int MESHIO::readEPS(std::string filename, int& cou, std::map<int, double>& mpd, std::map<int, vector<int>>& mpi) {
 	std::ifstream eps_file;
 	eps_file.open(filename);
@@ -633,4 +640,3 @@ int MESHIO::writeOBJ(string filename, const Mesh &mesh) {
 
     return 1;
 }
-

@@ -6,6 +6,10 @@
 .DS_Store
 test.cpp
 
+# External
+/extern/.cache
+/extern/eigen
+
 # Test
 /test
 file/

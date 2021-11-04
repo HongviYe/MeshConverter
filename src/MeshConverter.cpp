@@ -112,7 +112,8 @@ int main(int argc, char** argv) {
 		string output_filename = input_filename.substr(0, input_dotpos) + ".o.facet";
 		MESHIO::writeFacet(output_filename, mesh);
 	}
-	if(exportEpsVTK){
+
+	if(exportEpsVTK){// This is to generate AutoGrid to control local eps.
 		string output_filename = input_filename.substr(0, input_dotpos) + ".eps.vtk";
 		MESHIO::writeEpsVTK(output_filename, mesh, cou, mpd, mpi);
 	}
