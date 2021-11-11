@@ -9,6 +9,7 @@ test.cpp
 # External
 /extern/.cache
 /extern/eigen
+/extern/meshorient
 
 # Test
 /test

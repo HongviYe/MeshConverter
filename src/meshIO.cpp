@@ -502,16 +502,15 @@ int MESHIO::readPLS(std::string filename, Mesh &mesh) {
 	auto& M = mesh.Masks;
 	auto& V = mesh.Vertex;
 	auto& T = mesh.Topo; 
-	std::ifstream plsfile;
-	plsfile.open(filename);
-	if (!plsfile.is_open()) {
+	std::ifstream pls_file;
+	pls_file.open(filename);
+	if (!pls_file.is_open()) {
 		std::cout << "No such file. - " << filename << std::endl;
 		return -1;
 	}
 	int nPoints = 0;
 	int nFacets = 0;
 
-	auto& pls_file = plsfile;
 	std::string str;
 	std::getline(pls_file, str);
 	std::stringstream ss(str);
@@ -567,6 +566,61 @@ int MESHIO::writeFacet(std::string filename, const Mesh &mesh)
 		facetfile<< " " << i + 1 << std::endl;
 	}
 	return 0;
+}
+
+int MESHIO::readFacet(string filename, Mesh &mesh) {
+	auto& M = mesh.Masks;
+	auto& V = mesh.Vertex;
+	auto& T = mesh.Topo; 
+	std::ifstream facetfile;
+    facetfile.open(filename);
+    if(!facetfile.is_open()) {
+        return -1;
+    }
+    int nPoints = 0;
+    int nFacets = 0;
+
+    string line;
+    while(!facetfile.eof()) {
+        getline(facetfile, line);
+        if(line[0] == '#') {
+            continue;
+        }
+        if(line.find("Grid") != std::string::npos) {
+            getline(facetfile, line);   // ignore line like "0, 0.00, 0.00, 0.00, 0.00"
+            getline(facetfile, line);
+            nPoints = stoi(line);
+            V.resize(nPoints, 3);
+            vector<string> words;
+            for(int i = 0; i < nPoints; i++) {
+                getline(facetfile, line);
+                words = seperate_string(line);
+                if(words.size() != 3) {
+                    break;
+                }
+                for(int j = 0; j < 3; j++) {
+                    V(i, j) = stod(words[j]);
+                }
+            }
+        }
+        if(line.find("Triangles") != std::string::npos) {
+            getline(facetfile, line);
+            vector<string> words = seperate_string(line);
+            nFacets = stoi(words[0]);
+            M.resize(nFacets, 1);
+            T.resize(nFacets, 3);
+            for(int i = 0; i < nFacets; i++) {
+                getline(facetfile, line);
+                words = seperate_string(line);
+                for(int j = 0; j < 3; j++) {
+                    T(i, j) = stoi(words[j]) - 1;
+                }
+                M(i, 0) = stoi(words[4]);
+            }
+        }
+    }
+    facetfile.close();
+    return 1;
 }
 
 int MESHIO::writeOBJ(string filename, const Mesh &mesh) {

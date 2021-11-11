@@ -1,5 +1,7 @@
 # MeshConverter
 A format converter for surface mesh intergrated with muli tools.
+## Build and installation
+If eigen already exists in your computer, set environment ```EIGEN_BASE``` to skip download eigen from gitlab.
 ## Supported fileformat
 Including ACSCII based `vtk`,`pls`,`facet`,`msh`,`obj`. 
 ## Converter file format

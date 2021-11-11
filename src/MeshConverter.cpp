@@ -1,8 +1,6 @@
 #include "meshIO.h"
 #include "CLI11.hpp"
-#include "MeshOrient.h"
 #include "meshAlgorithm.h"
-#include "fstream"
 
 #define _DEBUG_ 1
 
@@ -62,10 +60,16 @@ int main(int argc, char** argv) {
 		MESHIO::readPLS(input_filename, mesh);
 	else if (input_postfix == "obj")
 		MESHIO::readOBJ(input_filename, mesh);
+	else if (input_postfix == "facet")
+		MESHIO::readFacet(input_filename, mesh);
     else {
         cout << "Unsupported input format - " << input_postfix << endl;
         return -1;
     }
+
+	// cout for checking reading.
+	cout << "Read " << mesh.Vertex.rows() << " points." << endl;
+	cout << "Read " << mesh.Topo.rows() << " elements." << endl;
 
     if(exportEpsVTK)
     	MESHIO::readEPS(input_filename_ex, cou, mpd, mpi);
@@ -80,7 +84,7 @@ int main(int argc, char** argv) {
 
 	//********* Regularize mesh oritation *********
 	if(resetOritation)
-	MESHIO::resetOrientation(mesh);
+		MESHIO::resetOrientation(mesh);
 
 	//********* modify facet orient ******
 	if(reverseFacetOrient){
@@ -94,7 +98,7 @@ int main(int argc, char** argv) {
 
     if(exportVTK) {
         string output_filename = input_filename.substr(0, input_dotpos) + ".o.vtk";
-        MESHIO::writeVTK(output_filename, mesh);
+        MESHIO::writeVTK(output_filename, mesh, "part");
     }
     if(exportMESH) {
         string output_filename = input_filename.substr(0, input_dotpos) + ".o.mesh";

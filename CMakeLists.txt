@@ -1,6 +1,8 @@
 cmake_minimum_required (VERSION 2.8)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 project(MeshConverter)
+# options
+option(MESHORIENT_BUILD_EXECUTABLE "Build executable." OFF)
 if(NOT CMAKE_BUILD_TYPE)
 	message(STATUS "No build type selected, default to Release")
 	set(CMAKE_BUILD_TYPE "Release")
@@ -14,12 +16,12 @@ else()
 endif()
 include(MeshConverterDependencies)
 set(SOURCES
-    src/meshIO.h
     src/meshIO.cpp
-src/meshAlgorithm.cpp
-src/meshAlgorithm.h
-	src/MeshOrient.cpp
+    src/meshAlgorithm.cpp
     src/MeshConverter.cpp)
+include_directories(./src)
 include_directories(./extern/cli11)
-include_directories(./extern/eigen)
+include_directories(${EIGEN_BASE})
+include_directories(./extern/meshorient/include)
 add_executable(MeshConverter ${SOURCES})
+target_link_libraries(MeshConverter MeshOrient)

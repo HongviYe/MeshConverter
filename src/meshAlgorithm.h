@@ -17,6 +17,7 @@ namespace MESHIO{
 	bool addBox(std::vector<double> boxVec, Mesh &mesh);
 	bool reverseOrient(Eigen::MatrixXi &T);
 	bool repair(Mesh &mesh);
+	bool resetOrientation(Mesh &mesh);
 
 }
 

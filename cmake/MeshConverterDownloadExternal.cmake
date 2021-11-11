@@ -28,3 +28,10 @@ function(meshconverter_download_eigen)
         GIT_TAG        3.3.7
     )
 endfunction()
+
+## MeshOrient
+function(meshconverter_download_meshorient)
+    meshconverter_download_project(meshorient
+        GIT_REPOSITORY https://github.com/xq-meng/MeshOrient.git
+    )
+endfunction()

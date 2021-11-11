@@ -1,6 +1,9 @@
 #include "meshAlgorithm.h"
+#include "MeshOrient.h"
 #include <iostream>
+
 using namespace std;
+
 /**
  * the start point is (start_x, start_y, start_z), the orient is (end_x, end_y, end_z), angle is PI * angle. angle \in (0, 2).
  * @param rotateVec is the param of rotate.
@@ -207,7 +210,7 @@ bool MESHIO::repair(Mesh &mesh)
 	std::cout << "Vertex number is  " << V.rows() << " X " << V.cols() << "  before clean. \n";
 	std::cout << "Cell number is  " << T.rows() << " X " << T.cols() << "  before clean. \n";
 	std::cout << "Attribute number is  " << M.rows() << " X " << M.cols() << "  before clean. \n";
-	// ¼ì²âÃæ»ýÎª0µÄµ¥Ôª¸öÊý
+	// æ£€æµ‹é¢ç§¯ä¸º0çš„å•å…ƒä¸ªæ•°
 
 	Eigen::MatrixXd Tri;
 	Tri.resize(3, 3);
@@ -233,7 +236,7 @@ bool MESHIO::repair(Mesh &mesh)
 
 	std::cout << "There are " << emptyTri.size() << " cells whose area is equal to zero.\n";
 
-	// È¥³ýÃæ»ýÎª0µÄµ¥Ôª
+	// åŽ»é™¤é¢ç§¯ä¸º0çš„å•å…ƒ
 
 	struct node
 	{
@@ -305,4 +308,32 @@ bool MESHIO::repair(Mesh &mesh)
 	std::cout << "Attribute number is  " << M.rows() << " X " << M.cols() << "  after clean. \n";
 	std::cout << "Clean all cell whose area is equal to zero. " << '\n';
 	return 0;
+}
+
+bool MESHIO::resetOrientation(Mesh &mesh) {
+	vector<vector<double>> point_list(mesh.Vertex.rows(), vector<double>(mesh.Vertex.cols(), 0));
+	vector<vector<int>> facet_list(mesh.Topo.rows(), vector<int>(mesh.Topo.cols(), 0));
+	for(int i = 0; i < mesh.Vertex.rows(); i++) {
+		for(int j = 0; j < mesh.Vertex.cols(); j++) {
+			point_list[i][j] = mesh.Vertex(i, j);
+		}
+	}
+	for(int i = 0; i < mesh.Topo.rows(); i++) {
+		for(int j = 0; j < mesh.Topo.cols(); j++) {
+			facet_list[i][j] = mesh.Topo(i, j);
+		}
+	}
+	vector<int> block_mark;
+	TIGER::resetOrientation(point_list, facet_list, block_mark);
+	for(int i = 0; i < mesh.Vertex.rows(); i++) {
+		for(int j = 0; j < mesh.Vertex.cols(); j++) {
+			mesh.Vertex(i, j) = point_list[i][j];
+		}
+	}
+	for(int i = 0; i < mesh.Topo.rows(); i++) {
+		for(int j = 0; j < mesh.Topo.cols(); j++) {
+			mesh.Topo(i, j) = facet_list[i][j];
+		}
+	}
+	return 1;
 }
