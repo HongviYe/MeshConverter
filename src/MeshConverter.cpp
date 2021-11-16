@@ -19,14 +19,15 @@ int main(int argc, char** argv) {
 	bool exportOBJ = false;
 	bool resetOritation = false;
 	bool reverseFacetOrient = false;
-	bool meshRepair = false;
+	bool RepairZeroAera = false;
+	bool resetOritationFaceid = false;
 
 	vector<double> rotateVec;
 	vector<double> boxVec;
 	app.add_option("-b", boxVec, "input bounding box. Format is (length, width, hight)");
 	app.add_option("-r", rotateVec, "input rotate param. Format is (start_x, start_y, start_z, end_x, end_y, end_z, angle) or (end_x, end_y, end_z, angle). angle value scale is (0, 2).");
     app.add_option("-i", input_filename, "input filename. (string, required, supported format: vtk, mesh, pls, obj)")->required();
-	app.add_option("-p", input_filename_ex, "input filename. (string, required)");
+	app.add_option("-p", input_filename_ex, "output filename. (string, required)");
 	app.add_flag("-k", exportVTK, "Write mesh in VTK format.");
 	app.add_flag("-e", exportEpsVTK, "Set eps in VTK format.");
 	app.add_flag("-m", exportMESH, "Write mesh in MESH/MEDIT format.");
@@ -34,9 +35,13 @@ int main(int argc, char** argv) {
 	app.add_flag("-s", exportPLS, "Write mesh in PLS format.");
 	app.add_flag("-f", exportFacet, "Write mesh in facet format.");
 	app.add_flag("-o", exportOBJ, "Write mesh in OBJ format.");
-	app.add_flag("--reverse-orient", reverseFacetOrient, "Reverse Facet Orient.");
-	app.add_flag("--reset-orient", resetOritation, "Regularize oritation");
-	app.add_flag("--repair", meshRepair, "Repair vtk file for the area is equal to zero.");
+	app.add_flag("--reverse_orient", reverseFacetOrient, "Reverse Facet Orient.");
+	app.add_flag("--reset_orient", resetOritation, "Regularize oritation");
+	app.add_flag("--reset_orient_faceid", resetOritationFaceid, "Regularize oritation and reset the facet mask by connected graph compoment index.");
+	app.add_flag("--rm_zero_area", RepairZeroAera, "Repair mesh file for the facet's area that equal to zero.");
+
+	if (resetOritationFaceid)
+		resetOritation = false;
 
     try {
         app.parse(argc, argv);
@@ -72,7 +77,7 @@ int main(int argc, char** argv) {
 	cout << "Read " << mesh.Topo.rows() << " elements." << endl;
 
     if(exportEpsVTK)
-    	MESHIO::readEPS(input_filename_ex, cou, mpd, mpi);
+    	MESHIO::readEPS(input_filename, cou, mpd, mpi);
 
 	//********* Rotate *********
 	if(!rotateVec.empty())
@@ -85,6 +90,8 @@ int main(int argc, char** argv) {
 	//********* Regularize mesh oritation *********
 	if(resetOritation)
 		MESHIO::resetOrientation(mesh);
+	if (resetOritationFaceid)
+		MESHIO::resetOrientation(mesh,true);
 
 	//********* modify facet orient ******
 	if(reverseFacetOrient){
@@ -92,7 +99,7 @@ int main(int argc, char** argv) {
 	}
 
 	//********** repair ********
-	if(meshRepair){
+	if(RepairZeroAera){
 		MESHIO::repair(mesh);
 	}
 
