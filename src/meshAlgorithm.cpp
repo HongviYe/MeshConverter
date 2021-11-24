@@ -310,7 +310,7 @@ bool MESHIO::repair(Mesh &mesh)
 	return 0;
 }
 
-bool MESHIO::resetOrientation(Mesh &mesh) {
+bool MESHIO::resetOrientation(Mesh &mesh, bool reset_mask) {
 	vector<vector<double>> point_list(mesh.Vertex.rows(), vector<double>(mesh.Vertex.cols(), 0));
 	vector<vector<int>> facet_list(mesh.Topo.rows(), vector<int>(mesh.Topo.cols(), 0));
 	for(int i = 0; i < mesh.Vertex.rows(); i++) {
@@ -334,6 +334,11 @@ bool MESHIO::resetOrientation(Mesh &mesh) {
 		for(int j = 0; j < mesh.Topo.cols(); j++) {
 			mesh.Topo(i, j) = facet_list[i][j];
 		}
+	}
+	if (reset_mask) {
+			for (int i = 0; i < mesh.Topo.rows(); i++) {
+				mesh.Masks(i,0) = block_mark[i];
+			}
 	}
 	return 1;
 }
