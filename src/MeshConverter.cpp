@@ -8,7 +8,7 @@ using namespace std;
 
 int main(int argc, char** argv) {
     CLI::App app{"MeshConveter"};
-    string input_filename;
+    vector<string> input_filenames;
 	string input_filename_ex;
 	bool exportMESH = false;
 	bool exportVTK = false;
@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
 	vector<double> boxVec;
 	app.add_option("-b", boxVec, "input bounding box. Format is (length, width, hight)");
 	app.add_option("-r", rotateVec, "input rotate param. Format is (start_x, start_y, start_z, end_x, end_y, end_z, angle) or (end_x, end_y, end_z, angle). angle value scale is (0, 2).");
-    app.add_option("-i", input_filename, "input filename. (string, required, supported format: vtk, mesh, pls, obj)")->required();
+    app.add_option("-i", input_filenames, "input filename. (string, required, supported format: vtk, mesh, pls, obj)")->required()->expected(1, 3);
 	app.add_option("-p", input_filename_ex, "input filename. (string, required)");
 	app.add_flag("-k", exportVTK, "Write mesh in VTK format.");
 	app.add_flag("-e", exportEpsVTK, "Set eps in VTK format.");
@@ -44,6 +44,7 @@ int main(int argc, char** argv) {
         return app.exit(e);
     }
 
+	string input_filename = input_filenames[0];
 	size_t input_dotpos = input_filename.find_last_of('.');
 	string input_postfix = input_filename.substr(input_dotpos + 1, input_filename.length() - input_dotpos - 1);
 
@@ -58,10 +59,36 @@ int main(int argc, char** argv) {
         MESHIO::readMESH(input_filename, mesh);
 	else if (input_postfix == "pls")
 		MESHIO::readPLS(input_filename, mesh);
+	else if (input_postfix == "ply")
+		MESHIO::readPLY(input_filename, mesh);
 	else if (input_postfix == "obj")
 		MESHIO::readOBJ(input_filename, mesh);
 	else if (input_postfix == "facet")
 		MESHIO::readFacet(input_filename, mesh);
+	else if (input_postfix == "node" || input_postfix == "ele" || input_postfix == "face") {
+		string nodefilename = "";
+		string facefilename = "";
+		string elemfilename = "";
+		for(auto t_filename : input_filenames) {
+			size_t t_dotpos = t_filename.find_last_of('.');
+			string t_postfix = t_filename.substr(t_dotpos + 1, t_filename.length() - t_dotpos - 1);
+			if(t_postfix == "node")
+				nodefilename = t_filename;
+			else if(t_postfix == "ele")
+				elemfilename = t_filename;
+			else if(t_postfix == "face")
+				facefilename = t_filename;
+		}
+		if(nodefilename.empty()) {
+			cout << "Node file is required." << endl;
+		}
+		if(!elemfilename.empty()) {
+			MESHIO::readTetgen(nodefilename, elemfilename, mesh);
+		}
+		else if(!facefilename.empty()) {
+			MESHIO::readTetgen(nodefilename, facefilename, mesh);
+		}
+	}
     else {
         cout << "Unsupported input format - " << input_postfix << endl;
         return -1;
@@ -91,11 +118,12 @@ int main(int argc, char** argv) {
 		MESHIO::reverseOrient(mesh.Topo);
 	}
 
-	//********** repair ********
+	//********* repair ********
 	if(meshRepair){
 		MESHIO::repair(mesh);
 	}
 
+	//********* export ********
     if(exportVTK) {
         string output_filename = input_filename.substr(0, input_dotpos) + ".o.vtk";
         MESHIO::writeVTK(output_filename, mesh, "part");
@@ -112,11 +140,10 @@ int main(int argc, char** argv) {
         string output_filename = input_filename.substr(0, input_dotpos) + ".o.pls";
         MESHIO::writePLS(output_filename, mesh);
     }
-	if (exportFacet) {
+	if(exportFacet) {
 		string output_filename = input_filename.substr(0, input_dotpos) + ".o.facet";
 		MESHIO::writeFacet(output_filename, mesh);
 	}
-
 	if(exportEpsVTK){// This is to generate AutoGrid to control local eps.
 		string output_filename = input_filename.substr(0, input_dotpos) + ".eps.vtk";
 		MESHIO::writeEpsVTK(output_filename, mesh, cou, mpd, mpi);

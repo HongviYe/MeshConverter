@@ -171,6 +171,7 @@ int MESHIO::readOBJ(std::string filename, Mesh &mesh) {
                     if(words[ii][wordLen] == '/') {
                         break;
                     }
+                    wordLen++;
                 }
                 coord.push_back(stod(words[ii].substr(0, wordLen)));
             }
@@ -188,8 +189,9 @@ int MESHIO::readOBJ(std::string filename, Mesh &mesh) {
                     if(words[ii][wordLen] == '/') {
                         break;
                     }
+                    wordLen++;
                 }
-                facet.push_back(stoi(words[ii].substr(0, wordLen)));
+                facet.push_back(stoi(words[ii].substr(0, wordLen)) - 1);
             }
             flist.push_back(facet);
             mlist.push_back(curMark);
@@ -257,6 +259,12 @@ int MESHIO::writeVTK(std::string filename, const Mesh &mesh, std::string mark_pa
     if(M.rows() != T.rows()) {
         f.close();
         return 1;
+    }
+    f << "POINT_DATA " << V.rows() << std::endl;
+    f << "SCALARS point_id int 1" << std::endl;
+    f << "LOOKUP_TABLE default" << std::endl;
+    for(int i = 0; i < V.rows(); i++) {
+        f << i << endl;
     }
     f << "CELL_DATA " << M.rows() << std::endl;
     f << "SCALARS " << mark_pattern << " int " << M.cols() << std::endl;
@@ -537,6 +545,59 @@ int MESHIO::readPLS(std::string filename, Mesh &mesh) {
 	return 1;
 }
 
+int MESHIO::readPLY(std::string filename, Mesh& mesh) {
+    auto& M = mesh.Masks;
+    auto& V = mesh.Vertex;
+    auto& T = mesh.Topo;
+
+    std::ifstream plyfile;
+    plyfile.open(filename);
+    if(!plyfile.is_open()) {
+		std::cout << "No such file. - " << filename << std::endl;
+        return -1;
+    }
+
+    int nPoints = 0;
+    int nFacets = 0;
+    
+    string line;
+    vector<string> words;
+    while(!plyfile.eof()) {
+        getline(plyfile, line);
+        if(line.find("element") != std::string::npos) {
+            words = seperate_string(line);
+            if(words[1] == "vertex") {
+                nPoints = stoi(words[2]);
+                V.resize(nPoints, 3);
+                cout << nPoints << endl;
+            }
+            else if(words[1] == "face") {
+                nFacets = stoi(words[2]);
+                T.resize(nFacets, 3);
+                cout << nFacets << endl;
+            }
+        }
+        if(line.find("end_header") != std::string::npos) {
+            for(int i = 0; i < nPoints; i++) {
+                getline(plyfile, line);
+                words = seperate_string(line);
+                for(int j = 0; j < 3; j++) {
+                    V(i, j) = stod(words[j]);
+                }
+            }
+            for(int i = 0; i < nFacets; i++) {
+                getline(plyfile, line);
+                stringstream ss(line);
+                int _;
+                ss >> _ >> T(i, 0) >> T(i, 1) >> T(i, 2);
+            }
+        }
+    }
+
+    plyfile.close();
+    return 1;
+}
+
 int MESHIO::writeFacet(std::string filename, const Mesh &mesh)
 {
 	auto& M = mesh.Masks;
@@ -691,6 +752,64 @@ int MESHIO::writeOBJ(string filename, const Mesh &mesh) {
     objFile << "# " << F.rows() << " faces" << endl << endl;
 
     objFile.close();
+
+    return 1;
+}
+
+int MESHIO::readTetgen(string nodefilename, string elefilename, Mesh &mesh) {
+    auto& T = mesh.Topo;
+    auto& V = mesh.Vertex;
+    string line;
+    vector<string> words;
+
+    ifstream nodefile(nodefilename);
+    if(!nodefile.is_open()) {
+        std::cout << "No such file. - " << nodefilename << std::endl;
+        return -1;
+    }
+    getline(nodefile, line);
+    words = seperate_string(line);
+    int nPoint = stoi(words[0]);
+    int pointType = (words.size() > 1) ? stoi(words[1]) : 3;
+    V.resize(nPoint, pointType);
+    while(!nodefile.eof()) {
+        getline(nodefile, line);
+        if(line.length() < 2 || line[0] == '#') {
+            continue;
+        }
+        words = seperate_string(line);
+        int pindex = stoi(words[0]) - 1;
+        for(int j = 0; j < pointType; j++) {
+            V(pindex, j) = stod(words[j + 1]);
+        }
+    }
+    nodefile.close();
+
+    if(elefilename.empty()) {
+        return 1;
+    }
+    ifstream elefile(elefilename);
+    if(!elefile.is_open()) {
+        std::cout << "No such file - " << elefilename << std::endl;
+        return -1;
+    }
+    getline(elefile, line);
+    words = seperate_string(line);
+    int nElement = stoi(words[0]);
+    int elementType = (words.size() > 1) ? stoi(words[1]) : 4;
+    T.resize(nElement, elementType);
+    while(!elefile.eof()) {
+        getline(elefile, line);
+        if(line.length() < 2 || line[0] == '#') {
+            continue;
+        }
+        words = seperate_string(line);
+        int eindex = stoi(words[0]) - 1;
+        for(int j = 0; j < elementType; j++) {
+            T(eindex, j) = stoi(words[j + 1]) - 1;
+        }
+    }
+    elefile.close();
 
     return 1;
 }
