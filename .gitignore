@@ -10,6 +10,7 @@ test.cpp
 /extern/.cache
 /extern/eigen
 /extern/meshorient
+/extern/libigl
 
 # Test
 /test
