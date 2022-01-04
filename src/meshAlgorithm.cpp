@@ -336,9 +336,9 @@ bool MESHIO::resetOrientation(Mesh &mesh, bool reset_mask) {
 		}
 	}
 	if (reset_mask) {
-			for (int i = 0; i < mesh.Topo.rows(); i++) {
-				mesh.Masks(i,0) = block_mark[i];
-			}
+		for (int i = 0; i < mesh.Topo.rows(); i++) {
+			mesh.Masks(i,0) = block_mark[i];
+		}
 	}
 	return 1;
 }

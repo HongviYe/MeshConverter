@@ -5,19 +5,13 @@
 #include <map>
 #include <string>
 #include <vector>
+#include "mesh.h"
 
 #define DEBUG_INFO() printf("File:%s, Line:%d, Function:%s\n", __FILE__, __LINE__ , __FUNCTION__)
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
-
-// Futher: Attribute should contain these data structure: double,int, vector(double,3), tensor(double,9), and no quantity constrain should be in there
-struct Mesh {
-	Eigen::MatrixXd Vertex;
-	Eigen::MatrixXi Topo;
-	Eigen::MatrixXi Masks;
-};
 
 namespace MESHIO{
 

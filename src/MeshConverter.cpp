@@ -35,13 +35,10 @@ int main(int argc, char** argv) {
 	app.add_flag("-s", exportPLS, "Write mesh in PLS format.");
 	app.add_flag("-f", exportFacet, "Write mesh in facet format.");
 	app.add_flag("-o", exportOBJ, "Write mesh in OBJ format.");
-	app.add_flag("--reverse_orient", reverseFacetOrient, "Reverse Facet Orient.");
-	app.add_flag("--reset_orient", resetOritation, "Regularize oritation");
-	app.add_flag("--reset_orient_faceid", resetOritationFaceid, "Regularize oritation and reset the facet mask by connected graph compoment index.");
-	app.add_flag("--rm_zero_area", RepairZeroAera, "Repair mesh file for the facet's area that equal to zero.");
-
-	if (resetOritationFaceid)
-		resetOritation = false;
+	app.add_flag("--reverse-orient", reverseFacetOrient, "Reverse Facet Orient.");
+	app.add_flag("--reset-orient", resetOritation, "Regularize oritation");
+	app.add_flag("--reset-orient-faceid", resetOritationFaceid, "Regularize oritation and reset the facet mask by connected graph compoment index.");
+	app.add_flag("--remove-zero-area", RepairZeroAera, "Repair mesh file for the facet's area that equal to zero.");
 
     try {
         app.parse(argc, argv);
@@ -115,10 +112,8 @@ int main(int argc, char** argv) {
 		MESHIO::addBox(boxVec, mesh);
 
 	//********* Regularize mesh oritation *********
-	if(resetOritation)
-		MESHIO::resetOrientation(mesh);
-	if (resetOritationFaceid)
-		MESHIO::resetOrientation(mesh,true);
+	if(resetOritation || resetOritationFaceid)
+		MESHIO::resetOrientation(mesh, resetOritationFaceid);
 
 	//********* modify facet orient ******
 	if(reverseFacetOrient){
