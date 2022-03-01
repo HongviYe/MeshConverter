@@ -192,7 +192,7 @@ bool MESHIO::addBox(vector<double> boxVec, Mesh &mesh)
 
 bool MESHIO::reverseOrient(Eigen::MatrixXi &T) {
 	std::cout << "Reversing\n";
-	for (int i = 0; i < T.cols(); i++)
+	for (int i = 0; i < T.rows(); i++)
 	{
 		int t = T(i, 0);
 		T(i, 0) = T(i, 2);
