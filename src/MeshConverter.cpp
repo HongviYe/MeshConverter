@@ -21,6 +21,7 @@ int main(int argc, char** argv) {
 	bool reverseFacetOrient = false;
 	bool RepairZeroAera = false;
 	bool resetOritationFaceid = false;
+	double DeleteDulPoint = -1;
 
 	vector<double> rotateVec;
 	vector<double> boxVec;
@@ -39,6 +40,7 @@ int main(int argc, char** argv) {
 	app.add_flag("--reset_orient", resetOritation, "Regularize oritation");
 	app.add_flag("--reset_orient_faceid", resetOritationFaceid, "Regularize oritation and reset the facet mask by connected graph compoment index.");
 	app.add_flag("--rm_zero_area", RepairZeroAera, "Repair mesh file for the facet's area that equal to zero.");
+	app.add_flag("--rm_dulplicate_point", DeleteDulPoint, "Delete duplicate points; Format is : --rm_dulplicate_point=1e-3.");
 
 	if (resetOritationFaceid)
 		resetOritation = false;
@@ -129,6 +131,14 @@ int main(int argc, char** argv) {
 	if(RepairZeroAera){
 		MESHIO::repair(mesh);
 	}
+	
+	//********* Delete dulplicate point ********
+	if(DeleteDulPoint != -1)
+	{
+		MESHIO::removeDulplicatePoint(mesh.Vertex, mesh.Topo, DeleteDulPoint);
+	}
+
+	
 
 	//********* export ********
     if(exportVTK) {
@@ -159,6 +169,9 @@ int main(int argc, char** argv) {
 		string output_filename = input_filename.substr(0, input_dotpos) + ".o.obj";
 		MESHIO::writeOBJ(output_filename, mesh);
 	}
+	
+	cout << "Write " << mesh.Vertex.rows() << " points." << endl;
+	cout << "Write " << mesh.Topo.rows() << " elements." << endl;
 
     return 0;
 }

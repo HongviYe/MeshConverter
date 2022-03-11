@@ -342,3 +342,77 @@ bool MESHIO::resetOrientation(Mesh &mesh, bool reset_mask) {
 	}
 	return 1;
 }
+/**
+ * sort eigen vector
+ * @param in_vec
+ * @param out_vec
+ * @param ind   index
+ */
+void eigen_sort_3d(const Eigen::MatrixXd& in_vec, Eigen::MatrixXd& out_vec, Eigen::VectorXi& ind)
+{
+	double eps = 1e-6;
+	ind = Eigen::VectorXi::LinSpaced(in_vec.rows(), 0, in_vec.rows() - 1);
+	auto rule = [&in_vec, &eps](int i, int j)->bool{
+		if( fabs(in_vec(i, 0) - in_vec(j, 0)) > eps) return in_vec(i, 0) < in_vec(j, 0);
+		if( fabs(in_vec(i, 1) - in_vec(j, 1)) > eps) return in_vec(i, 1) < in_vec(j, 1);
+		if( fabs(in_vec(i, 2) - in_vec(j, 2)) > eps) return in_vec(i, 2) < in_vec(j, 2);
+		return i < j;
+	};
+	std::sort(ind.data(), ind.data() + ind.size(), rule);
+	out_vec.resize(in_vec.rows(), in_vec.cols());
+	for(int i = 0; i < in_vec.rows(); i++)
+	{
+		out_vec.row(i) << in_vec.row(ind(i));
+	}
+}
+
+/**
+ * Remove dulplicate point.
+ * @param V
+ * @param T
+ */
+bool MESHIO::removeDulplicatePoint(Eigen::MatrixXd& V, Eigen::MatrixXi& F, double eps){
+	Eigen::MatrixXd V_in = V;
+	Eigen::MatrixXi F_in = F;
+	Eigen::MatrixXd V_sort;
+	Eigen::VectorXi ind;
+	eigen_sort_3d(V_in, V_sort, ind);
+	int cnt = 0;
+	std::unordered_map<int, int> mpid;
+	std::vector<int> new_point_lst;
+	for(int i = 0; i < V_sort.rows(); i++)
+	{
+		while (i + 1 < V_sort.rows())
+		{
+			if( (V_sort.row(i + 1) - V_sort.row(i)).norm() < eps )
+			{
+				mpid[ ind[i] ] = cnt;
+				i++;
+			}
+			else break;
+		}
+
+		mpid[ind[i]] = cnt;
+		new_point_lst.push_back(ind[i]);
+		cnt++;
+	}
+
+	V.resize(new_point_lst.size(), 3);
+	F.resize(F_in.rows(), 3);
+
+	for(int i = 0; i < new_point_lst.size(); i++)
+	{
+		V.row(i) = V_in.row(new_point_lst[i]);
+	}
+
+	for(int i = 0; i < F_in.rows(); i++)
+	{
+		for(int j = 0; j < 3; j++)
+		{
+			F(i, j) = mpid[ F_in(i, j) ];
+		}
+	}
+
+	std::cout << "Remove " << V_in.rows() - V.rows() << " dulplicate points\n";
+
+}
