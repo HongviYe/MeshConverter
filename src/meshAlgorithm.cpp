@@ -340,5 +340,6 @@ bool MESHIO::resetOrientation(Mesh &mesh, bool reset_mask) {
 				mesh.Masks(i,0) = block_mark[i];
 			}
 	}
+	cout << "Orientation reset" << endl;
 	return 1;
 }
