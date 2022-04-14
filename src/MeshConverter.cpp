@@ -25,6 +25,7 @@ int main(int argc, char** argv) {
 
 	vector<double> rotateVec;
 	vector<double> boxVec;
+	vector<double> createbox;
 	app.add_option("-b", boxVec, "input bounding box. Format is (length, width, hight)");
 	app.add_option("-r", rotateVec, "input rotate param. Format is (start_x, start_y, start_z, end_x, end_y, end_z, angle) or (end_x, end_y, end_z, angle). angle value scale is (0, 2).");
     app.add_option("-i", input_filenames, "input filename. (string, required, supported format: vtk, mesh, pls, obj)")->required()->expected(1, 3);
@@ -36,6 +37,7 @@ int main(int argc, char** argv) {
 	app.add_flag("-s", exportPLS, "Write mesh in PLS format.");
 	app.add_flag("-f", exportFacet, "Write mesh in facet format.");
 	app.add_flag("-o", exportOBJ, "Write mesh in OBJ format.");
+	app.add_option("--create_box", createbox, "input bounding box. Format is (x1_min, y1_min, z1_min, x1_max, y1_max, z1_max, ...)");
 	app.add_flag("--reverse_orient", reverseFacetOrient, "Reverse Facet Orient.");
 	app.add_flag("--reset_orient", resetOritation, "Regularize oritation");
 	app.add_flag("--reset_orient_faceid", resetOritationFaceid, "Regularize oritation and reset the facet mask by connected graph compoment index.");
@@ -138,7 +140,16 @@ int main(int argc, char** argv) {
 		MESHIO::removeDulplicatePoint(mesh.Vertex, mesh.Topo, DeleteDulPoint);
 	}
 
-	
+	//********* Create some box ********
+	if(createbox.size() != 0)
+	{
+		if(createbox.size() % 6 != 0)
+		{
+			std::cout << "Format is error !" << std::endl;
+			return -1;
+		}
+		MESHIO::createBox(createbox, mesh);
+	}
 
 	//********* export ********
     if(exportVTK) {
