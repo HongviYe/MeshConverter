@@ -498,8 +498,14 @@ int MESHIO::writePLS(std::string filename, const Mesh &mesh)
     plsfile << T.rows() << " " << V.rows() << " " << "0 0 0 0\n";
     for(int i = 0; i < V.rows(); i++)
         plsfile << i + 1 << " " << V(i, 0) << " " << V(i, 1) << " " << V(i, 2) << std::endl;
-    for(int i = 0; i < T.rows(); i++)
-        plsfile << i + 1 << " " << T(i, 0) + 1 << " " << T(i, 1) + 1 << " " << T(i, 2) + 1 << " " << M(i, 0)  << std::endl;
+	for (int i = 0; i < T.rows(); i++) {
+		plsfile << i + 1 << " " << T(i, 0) + 1 << " " << T(i, 1) + 1 << " " << T(i, 2) + 1;
+		if (M.rows() && M.cols())
+			plsfile << " " << M(i, 0);
+		else
+			plsfile << " " << 1;
+		plsfile << std::endl;
+	}
         
     plsfile.close();
     std::cout << "Finish\n";
