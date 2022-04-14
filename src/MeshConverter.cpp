@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
 	std::map<int, vector<int>> mpi;
 
     if(input_postfix == "vtk")
-        MESHIO::readVTK(input_filename, mesh);
+        MESHIO::readVTK(input_filename, mesh, "surface_id");
     else if(input_postfix == "mesh")
         MESHIO::readMESH(input_filename, mesh);
 	else if (input_postfix == "pls")
@@ -154,7 +154,7 @@ int main(int argc, char** argv) {
 	//********* export ********
     if(exportVTK) {
         string output_filename = input_filename.substr(0, input_dotpos) + ".o.vtk";
-        MESHIO::writeVTK(output_filename, mesh, "part");
+        MESHIO::writeVTK(output_filename, mesh, "surface_id");
     }
     if(exportMESH) {
         string output_filename = input_filename.substr(0, input_dotpos) + ".o.mesh";
