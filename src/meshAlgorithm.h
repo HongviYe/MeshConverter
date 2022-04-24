@@ -3,6 +3,7 @@
 
 #include <Eigen/Dense>
 #include <map>
+#include <unordered_map>
 #include <string>
 #include <vector>
 #include "meshIO.h"
@@ -18,6 +19,8 @@ namespace MESHIO{
 	bool reverseOrient(Eigen::MatrixXi &T);
 	bool repair(Mesh &mesh);
 	bool resetOrientation(Mesh &mesh,bool reset_mask=false);
+	bool removeDulplicatePoint(Eigen::MatrixXd& V, Eigen::MatrixXi& T, double eps);
+	bool createBox(std::vector<double> create_box, Mesh &mesh);
 
 }
 

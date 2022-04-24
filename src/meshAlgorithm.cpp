@@ -65,6 +65,93 @@ bool MESHIO::rotatePoint(vector<double> rotateVec, Mesh &mesh)
 }
 
 /**
+ * @brief Create a Box object
+ * 
+ * @param create_box 
+ * @param mesh 
+ * @return true 
+ * @return false 
+ */
+bool MESHIO::createBox(std::vector<double> create_box, Mesh &mesh)
+{
+	/***************************
+	 *          | Z
+	 * 			|
+	 * 			|
+	 * 			|__ __ __ __ Y
+	 * 		   /o
+	 * 		  /
+	 *       / X
+	/***************************
+	 *    4 _________2
+	 *     /|        /|
+	 *   3/_|______1/ |
+	 *    | |8_____|__|6
+	 *    | /      | /
+	 *  7 |/_______|/5
+	 ****************************/
+
+	vector<int> boxTri = {
+			1, 4, 2, // up
+			1, 3, 4, // up
+			5, 6, 8, // down
+			5, 8, 7, // down
+			5, 3, 1, // front
+			5, 7, 3, // front
+			6, 2, 4, // behind
+			6, 4, 8, // behind
+			7, 8, 4, // left
+			7, 4, 3, // left
+			5, 1, 2, // right
+			5, 2, 6  // right
+	};
+	
+	int box_num = create_box.size() / 6;
+
+	mesh.Vertex.resize(box_num * 8, 3);
+	mesh.Topo.resize(boxTri.size() / 3 * box_num, 3);
+	mesh.Masks.resize(mesh.Topo.rows(), 1);
+
+	std::cout << "Create the number of box is " << box_num << std::endl;
+	std::cout << "Create the number of point is " << mesh.Vertex.rows() << std::endl;
+	std::cout << "Create the number of tritopo is " << mesh.Topo.rows() << std::endl;
+
+	int base_v = 0;
+	int base_t = 0;
+	int base_c = 0;
+
+	for(int i = 0; i < create_box.size(); i += 6)
+	{
+		Eigen::Vector3d minn, maxx;
+		minn = Eigen::Vector3d(create_box[i + 0], create_box[i + 1], create_box[i + 2]).cwiseMin(Eigen::Vector3d(create_box[i + 3], create_box[i + 4], create_box[i + 5]));
+		maxx = Eigen::Vector3d(create_box[i + 0], create_box[i + 1], create_box[i + 2]).cwiseMax(Eigen::Vector3d(create_box[i + 3], create_box[i + 4], create_box[i + 5]));
+
+		Eigen::Vector3d V_lst[8];
+		
+		mesh.Vertex.row(base_v + 0) = maxx;
+		mesh.Vertex.row(base_v + 1) = Eigen::Vector3d( minn.x(), maxx.y(), maxx.z() );
+		mesh.Vertex.row(base_v + 2) = Eigen::Vector3d( maxx.x(), minn.y(), maxx.z() );
+		mesh.Vertex.row(base_v + 3) = Eigen::Vector3d( minn.x(), minn.y(), maxx.z() );
+		mesh.Vertex.row(base_v + 4) = Eigen::Vector3d( maxx.x(), maxx.y(), minn.z() );
+		mesh.Vertex.row(base_v + 5) = Eigen::Vector3d( minn.x(), maxx.y(), minn.z() );
+		mesh.Vertex.row(base_v + 6) = Eigen::Vector3d( maxx.x(), minn.y(), minn.z() );
+		mesh.Vertex.row(base_v + 7) = minn;
+
+		for(int j = 0; j < boxTri.size() / 3; j++)
+		{
+			mesh.Masks(base_t + j, 0) = base_c;
+			mesh.Topo.row(base_t + j) = Eigen::Vector3i( base_v + boxTri[j * 3 + 0] - 1,
+														 base_v + boxTri[j * 3 + 1] - 1,
+														 base_v + boxTri[j * 3 + 2] - 1);
+		}
+		base_v += 8;
+		base_t += 12;
+		base_c += 1;
+	}
+	
+}
+
+/**
  * Add bounding box.
  * @param boxVec
  * @param V
@@ -342,4 +429,77 @@ bool MESHIO::resetOrientation(Mesh &mesh, bool reset_mask) {
 	}
 	cout << "Orientation reset" << endl;
 	return 1;
+}
+/**
+ * sort eigen vector
+ * @param in_vec
+ * @param out_vec
+ * @param ind   index
+ */
+void eigen_sort_3d(const Eigen::MatrixXd& in_vec, Eigen::MatrixXd& out_vec, Eigen::VectorXi& ind, double eps)
+{
+	ind = Eigen::VectorXi::LinSpaced(in_vec.rows(), 0, in_vec.rows() - 1);
+	auto rule = [&in_vec, &eps](int i, int j)->bool{
+		if( fabs(in_vec(i, 0) - in_vec(j, 0)) > eps) return in_vec(i, 0) < in_vec(j, 0);
+		if( fabs(in_vec(i, 1) - in_vec(j, 1)) > eps) return in_vec(i, 1) < in_vec(j, 1);
+		if( fabs(in_vec(i, 2) - in_vec(j, 2)) > eps) return in_vec(i, 2) < in_vec(j, 2);
+		return i < j;
+	};
+	std::sort(ind.data(), ind.data() + ind.size(), rule);
+	out_vec.resize(in_vec.rows(), in_vec.cols());
+	for(int i = 0; i < in_vec.rows(); i++)
+	{
+		out_vec.row(i) << in_vec.row(ind(i));
+	}
+}
+
+/**
+ * Remove dulplicate point.
+ * @param V
+ * @param T
+ */
+bool MESHIO::removeDulplicatePoint(Eigen::MatrixXd& V, Eigen::MatrixXi& F, double eps){
+	Eigen::MatrixXd V_in = V;
+	Eigen::MatrixXi F_in = F;
+	Eigen::MatrixXd V_sort;
+	Eigen::VectorXi ind;
+	eigen_sort_3d(V_in, V_sort, ind, eps);
+	int cnt = 0;
+	std::unordered_map<int, int> mpid;
+	std::vector<int> new_point_lst;
+	for(int i = 0; i < V_sort.rows(); i++)
+	{
+		while (i + 1 < V_sort.rows())
+		{
+			if( (V_sort.row(i + 1) - V_sort.row(i)).norm() < eps )
+			{
+				mpid[ ind[i] ] = cnt;
+				i++;
+			}
+			else break;
+		}
+
+		mpid[ind[i]] = cnt;
+		new_point_lst.push_back(ind[i]);
+		cnt++;
+	}
+
+	V.resize(new_point_lst.size(), 3);
+	F.resize(F_in.rows(), 3);
+
+	for(int i = 0; i < new_point_lst.size(); i++)
+	{
+		V.row(i) = V_in.row(new_point_lst[i]);
+	}
+
+	for(int i = 0; i < F_in.rows(); i++)
+	{
+		for(int j = 0; j < 3; j++)
+		{
+			F(i, j) = mpid[ F_in(i, j) ];
+		}
+	}
+
+	std::cout << "Remove " << V_in.rows() - V.rows() << " dulplicate points\n";
+
 }

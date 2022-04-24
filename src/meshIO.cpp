@@ -273,6 +273,19 @@ int MESHIO::writeVTK(std::string filename, const Mesh &mesh, std::string mark_pa
             f << M(i, j);
         f << std::endl;
     }
+    if(T.cols() == 3)
+    {
+        std::cout << "This have normal information.\n";
+        f << "NORMALS facet_normals double\n";
+        for(int i = 0; i < T.rows(); i++)
+        {
+            Eigen::Vector3d ab = V.row(T(i, 1)) - V.row(T(i, 0));
+            Eigen::Vector3d ac = V.row(T(i, 2)) - V.row(T(i, 0));
+            Eigen::Vector3d t_nor = ab.cross(ac);
+            t_nor.normalize();
+            f << t_nor.x() << " " << t_nor.y() << " " << t_nor.z() << std::endl;
+        }
+    }
     f << std::endl;
     f.close();
     return 1;
