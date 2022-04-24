@@ -68,7 +68,6 @@ int MESHIO::readVTK(std::string filename, Mesh& mesh, std::string mark_pattern) 
 	auto& M = mesh.Masks;
 	auto& V = mesh.Vertex;
 	auto& T = mesh.Topo;
-    M.resize(1, 1);
     int nPoints = 0;
     int nFacets = 0;
     std::ifstream vtk_file;
