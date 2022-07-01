@@ -1,5 +1,14 @@
 #include "meshAlgorithm.h"
 #include "MeshOrient.h"
+
+#include <igl/bfs_orient.h>
+#include <igl/map_vertices_to_circle.h>
+#include <igl/remove_duplicate_vertices.h>
+#include <igl/harmonic.h>
+
+#include <set>
+#include <unordered_map>
+#include <cmath>
 #include <iostream>
 
 using namespace std;
@@ -502,4 +511,285 @@ bool MESHIO::removeDulplicatePoint(Eigen::MatrixXd& V, Eigen::MatrixXi& F, doubl
 
 	std::cout << "Remove " << V_in.rows() - V.rows() << " dulplicate points\n";
 
+}
+
+void MESHIO::dfs_get_loop2(int cur, int pre, std::vector<bool>& vis, std::vector<std::vector<int>>& G, std::vector<int>& path, std::vector<std::vector<int>>& loop_lst)
+{
+	if(vis[cur])
+	{
+		std::vector<int> tmp;
+		for(int i = path.size() - 2; i >= 0; i--)
+		{
+			if(path[i] != cur)
+			{
+				tmp.push_back(path[i]);
+			}
+			else
+			{
+				tmp.push_back(path[i]);
+				break;
+			}
+		}
+		loop_lst.push_back(tmp);
+		return ;
+	}
+
+	vis[cur] = 1;
+	for(int i = 0; i < G[cur].size(); i++)
+	{
+		if(G[cur][i] == pre) continue;
+		path.push_back(G[cur][i]);
+		dfs_get_loop2(G[cur][i], cur, vis, G, path, loop_lst);
+		path.pop_back();
+	}
+	vis[cur] = 0;
+
+}
+
+void MESHIO::boundary_loop_by_dfs2(Eigen::MatrixXd& V, Eigen::MatrixXi& F, Eigen::VectorXi& bnd)
+{
+	double eps = 1e-6;
+	Eigen::MatrixXd V_tmp;
+	Eigen::MatrixXi F_tmp;
+	Eigen::VectorXi ind;
+
+	V_tmp = V;
+	F_tmp = F;
+
+	bool b_dulplicated_point = false;
+	if(b_dulplicated_point)
+	{
+		for(int i = 0; i < V.rows(); i++)
+		{
+			for(int j = i + 1; j < V.rows(); j++)
+			if( (V.row(i) - V.row(j)).norm() < eps )
+			{
+				std::cout << "Warning : boundary loop have dulplicate point.\n";
+				break;
+			}
+		}
+	}
+
+	// To find all boundary for building graph.
+	std::vector<std::vector<int>> G(V.rows(), std::vector<int>());
+	std::map<std::array<int, 2> , int> mp;
+	std::vector<bool> vis(V.rows(), 0);
+	std::vector<std::vector<int>> loop_lst;
+	std::vector<int> path;
+	std::set<int> num_p_set;
+
+	for(int i = 0; i < F.rows(); i++)
+	{
+		for(int j = 0; j < 3; j++)
+		{
+			int a = F(i, j);
+			int b = F(i, (j + 1) % 3 );
+			std::array<int, 2> tmp = {std::min(a, b), std::max(a, b)};
+			mp[tmp]++;
+		}
+	}
+
+	for(auto iter = mp.begin(); iter != mp.end(); iter++)
+	{
+		if( iter->second == 1 )
+		{
+			G[iter->first[0]].push_back(iter->first[1]);
+			G[iter->first[1]].push_back(iter->first[0]);
+			// std::cout << iter->first[0] << " " << iter->first[1] << '\n';
+			num_p_set.insert(iter->first[0]);
+			num_p_set.insert(iter->first[1]);
+		}
+	}
+
+	int start = *num_p_set.begin();
+	path.push_back(start);
+	MESHIO::dfs_get_loop2(start, -1, vis, G, path, loop_lst);
+
+	for(int i = 0; i < loop_lst.size(); i++)
+	{
+		std::cout << "#BK The " << i << "th loop number is : " << loop_lst[i].size() << '\n';
+	}
+
+	sort(loop_lst.begin(), loop_lst.end(), [&V](std::vector<int>& a, std::vector<int>& b){
+		double len_a = 0.0;
+		double len_b = 0.0;
+
+		for(int i = 0; i < a.size(); i++)
+		{
+			len_a += (V.row(i) - V.row((i + 1) % a.size())).norm();
+		}
+
+		for(int i = 0; i < b.size(); i++)
+		{
+			len_b += (V.row(i) - V.row((i + 1) % b.size())).norm();
+		}
+		
+		return len_a > len_b;
+	});	
+
+
+	int s = loop_lst[0][0];
+	int e = loop_lst[0][1];
+	int ok = 0;
+	for(int i = 0; i < F.rows(); i++)
+	{
+		for(int j = 0; j < 3; j++)
+		{
+			int a = F(i, j);
+			int b = F(i, (j + 1) % 3 );
+			if(a == s && b == e)
+			{
+				ok = 1;
+			}
+		}
+		if(ok) break;
+	}
+
+	if(!ok)
+	{
+		std::reverse(loop_lst[0].begin(), loop_lst[0].end());
+	}
+
+	bnd.resize(loop_lst[0].size(), 1);
+	for(int i = 0; i < loop_lst[0].size(); i++)
+	{
+		bnd(i) = loop_lst[0][i];
+	}
+
+}
+
+bool MESHIO::buildTuttleParameter( Eigen::MatrixXd& V_3d, Eigen::MatrixXi& T_3d, Eigen::MatrixXd& V_uv )
+{
+	Eigen::MatrixXi C;
+  Eigen::VectorXi bnd;
+
+	igl::bfs_orient(T_3d, T_3d, C);
+
+
+  // remove duplicate point
+  double minn_size = std::numeric_limits<double>::max();
+
+  for(int i = 0; i < T_3d.rows(); i++)
+  {
+    for(int j = 0; j < 3; j++)
+    {
+      int a = T_3d(i, j);
+      int b = T_3d(i, (j + 1) % 3);
+      minn_size = std::min(minn_size, (V_3d.row(a) - V_3d.row(b)).norm() );
+    }
+  }
+  minn_size = sqrt(minn_size);
+  Eigen::MatrixXd tmpV = V_3d;
+  Eigen::MatrixXi tmpT = T_3d;
+  Eigen::MatrixXi SVI, SVJ;
+  igl::remove_duplicate_vertices(tmpV, tmpT, minn_size / 1000.0, V_3d, SVI, SVJ, T_3d);
+
+  // removeDulplicatePoint(V_3d, T_3d, minn_size / 1000.0);
+  int V_N = V_3d.rows();
+
+  boundary_loop_by_dfs2(V_3d, T_3d, bnd); // mine
+    
+  // Map the boundary to a circle, preserving edge proportions
+  Eigen::MatrixXd bnd_uv;
+  igl::map_vertices_to_circle(V_3d, bnd, bnd_uv);
+
+
+  // build adj relation
+  std::vector<std::vector<int>> adj(V_N);
+  for(int i = 0; i < T_3d.rows(); i++)
+  {
+    for(int j = 0; j < 3; j++)
+    {
+      int a = T_3d(i, j);
+      int b = T_3d(i, (j + 1) % 3);
+      adj[a].push_back(b);
+      adj[b].push_back(a);
+    }
+  }
+
+  typedef Eigen::Triplet<double> T;
+	typedef Eigen::SparseMatrix<double> SMatrix;
+
+	std::vector<T> tripletlist;
+	Eigen::VectorXd bu = Eigen::VectorXd::Zero(V_N);
+	Eigen::VectorXd bv = Eigen::VectorXd::Zero(V_N);
+
+  std::unordered_map<int, bool> is_boundary;
+  std::unordered_map<int, Eigen::Vector2d> mp_bnd;
+  for(int i = 0; i < bnd.rows(); i++)
+  {
+    is_boundary[bnd(i, 0)] = 1;
+    mp_bnd[bnd(i, 0)] = bnd_uv.row(i);
+  }
+
+  for(int i = 0; i < V_N; ++i)
+  {
+    if(is_boundary[i])
+    {
+      tripletlist.emplace_back(i, i, 1);
+      bu(i) = mp_bnd[i].x();
+      bv(i) = mp_bnd[i].y();
+    }
+    else{
+      for(int j = 0; j < adj[i].size(); j++)
+      {
+        tripletlist.emplace_back(i, adj[i][j], -1);
+      }
+      tripletlist.emplace_back(i, i, adj[i].size());
+    }
+  }
+
+  SMatrix coff(V_N, V_N);
+  coff.setFromTriplets(tripletlist.begin(), tripletlist.end());
+  Eigen::SparseLU<SMatrix> solver;
+  solver.compute(coff);
+
+  Eigen::VectorXd xu = solver.solve(bu);
+  Eigen::VectorXd xv = solver.solve(bv);
+
+  V_uv.resize(V_N, 2);
+
+  V_uv.col(0) = xu;
+  V_uv.col(1) = xv;
+
+  std::cout << "Build tuttle parameter is success.\n";
+	return 1;
+}
+
+
+bool MESHIO::buildHarmonicParameter(Eigen::MatrixXd& V_3d, Eigen::MatrixXi& T_3d, Eigen::MatrixXd& V_uv)
+{
+  Eigen::VectorXi bnd;
+
+  // remove duplicate point
+  double minn_size = std::numeric_limits<double>::max();
+
+  for(int i = 0; i < T_3d.rows(); i++)
+  {
+    for(int j = 0; j < 3; j++)
+    {
+      int a = T_3d(i, j);
+      int b = T_3d(i, (j + 1) % 3);
+      minn_size = std::min(minn_size, (V_3d.row(a) - V_3d.row(b)).norm() );
+    }
+  }
+  minn_size = sqrt(minn_size);
+  Eigen::MatrixXd tmpV = V_3d;
+  Eigen::MatrixXi tmpT = T_3d;
+  Eigen::MatrixXi SVI, SVJ;
+  igl::remove_duplicate_vertices(tmpV, tmpT, minn_size / 1000.0, V_3d, SVI, SVJ, T_3d);
+
+  boundary_loop_by_dfs2(V_3d, T_3d, bnd); // mine
+
+  // Map the boundary to a circle, preserving edge proportions
+  Eigen::MatrixXd bnd_uv;
+  igl::map_vertices_to_circle(V_3d, bnd, bnd_uv);
+
+  igl::harmonic(V_3d, T_3d, bnd, bnd_uv, 1, V_uv);
+
+  // Scale UV to make the texture more clear
+  // V_uv *= 10000;
+
+  std::cout << "Build harmonic parameter is success.\n";
+	return 1;
 }

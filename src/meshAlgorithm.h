@@ -21,6 +21,19 @@ namespace MESHIO{
 	bool resetOrientation(Mesh &mesh,bool reset_mask=false);
 	bool removeDulplicatePoint(Eigen::MatrixXd& V, Eigen::MatrixXi& T, double eps);
 	bool createBox(std::vector<double> create_box, Mesh &mesh);
+	bool buildTuttleParameter(Eigen::MatrixXd& V_3d, Eigen::MatrixXi& T_3d, Eigen::MatrixXd& V_uv);
+	bool buildHarmonicParameter(Eigen::MatrixXd& V_3d, Eigen::MatrixXi& T_3d, Eigen::MatrixXd& V_uv);
+
+
+  // called by the algorithm above.
+	void dfs_get_loop2(
+  int cur, int pre, 
+  std::vector<bool>& vis, 
+  std::vector<std::vector<int>>& G, 
+  std::vector<int>& path, 
+  std::vector<std::vector<int>>& loop_lst);
+	void boundary_loop_by_dfs2(Eigen::MatrixXd& V, Eigen::MatrixXi& F, Eigen::VectorXi& bnd);
+
 
 }
 
