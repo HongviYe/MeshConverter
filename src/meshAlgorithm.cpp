@@ -9,6 +9,9 @@
 #include <set>
 #include <unordered_map>
 #include <cmath>
+#include <algorithm> // std::move_backward
+#include <random> // std::default_random_engine
+#include <chrono> // std::chrono::system_clock
 #include <iostream>
 
 using namespace std;
@@ -791,5 +794,48 @@ bool MESHIO::buildHarmonicParameter(Eigen::MatrixXd& V_3d, Eigen::MatrixXi& T_3d
   // V_uv *= 10000;
 
   std::cout << "Build harmonic parameter is success.\n";
+	return 1;
+}
+
+bool MESHIO::shuffleSurfaceid(int num, Mesh& mesh)
+{
+	num = std::min(100, num);
+	num = std::max(1, num);
+	
+	auto& M = mesh.Masks;
+	auto& V = mesh.Vertex;
+	auto& T = mesh.Topo;
+	std::vector<int> random_id;
+
+	if(M.cols() != 1) return 0;
+
+	std::unordered_map<int, int> mp_id;
+	int cnt = 1;
+	for(int i = 0; i < M.rows(); i++)
+	{
+		if(mp_id[M(i, 0)]) continue;
+		mp_id[M(i, 0)] = cnt++;
+	}
+
+	for(int i = 0; i < cnt; ++i)
+	{
+		random_id.push_back(i);
+	}
+
+	for(int i = 0; i < std::min(100, num); ++i)
+	{
+  	std::shuffle (random_id.begin (), random_id.end (), std::default_random_engine (i));
+	}
+
+	set<int> tt;
+	for(int i = 0; i < M.rows(); ++i)
+	{
+		if(M(i, 0) == random_id[mp_id[M(i, 0)] - 1])
+		{
+			tt.insert(M(i, 0));
+		}
+		M(i, 0) = random_id[ mp_id[M(i, 0)] - 1];
+	}
+	std::cout << "After shuffle the number of dulplication is : " << tt.size() << "\n";
 	return 1;
 }

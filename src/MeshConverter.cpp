@@ -20,12 +20,14 @@ int main(int argc, char **argv)
 	bool exportFacet = false;
 	bool exportOBJ = false;
 	bool exportStlIn = false;
+	bool shuffleMark = false;
 	bool resetOritation = false;
 	bool reverseFacetOrient = false;
 	bool RepairZeroAera = false;
 	bool resetOritationFaceid = false;
 	double DeleteDulPoint = -1;
 	int reparam_way = -1;
+	int shuffle_num = 1;
 
 	vector<double> rotateVec;
 	vector<double> boxVec;
@@ -42,6 +44,8 @@ int main(int argc, char **argv)
 	app.add_flag("-f", exportFacet, "Write mesh in facet format.");
 	app.add_flag("-o", exportOBJ, "Write mesh in OBJ format.");
 	app.add_flag("--stl_in", exportStlIn, "Write mesh in stl.in format.");
+	app.add_flag("--shuffle", shuffleMark, "Shuffle surface_id for view clearly.");
+	app.add_option("--shuffle_num", shuffle_num, "Shuffle number is [1, 100].");
 	app.add_option("--reparam", reparam_way, "input reparameter way. 0 is tuttle. 1 is harmonic.");
 	app.add_option("--create_box", createbox, "input bounding box. Format is (x1_min, y1_min, z1_min, x1_max, y1_max, z1_max, ...)");
 	app.add_flag("--reverse_orient", reverseFacetOrient, "Reverse Facet Orient.");
@@ -161,6 +165,14 @@ int main(int argc, char **argv)
 	//********* Rotate *********
 	if (!rotateVec.empty())
 		MESHIO::rotatePoint(rotateVec, mesh);
+
+	//********* Shuffle **********
+	if(shuffleMark)
+	{
+		std::cout << "shuffle surface start.\n";
+		MESHIO::shuffleSurfaceid(shuffle_num, mesh);
+		suffix = ".shuffle";
+	}
 
 	//********* Add Box *********
 	if (!boxVec.empty())
