@@ -19,6 +19,7 @@ int main(int argc, char **argv)
 	bool exportPLS = false;
 	bool exportFacet = false;
 	bool exportOBJ = false;
+	bool exportStlIn = false;
 	bool resetOritation = false;
 	bool reverseFacetOrient = false;
 	bool RepairZeroAera = false;
@@ -40,6 +41,7 @@ int main(int argc, char **argv)
 	app.add_flag("-s", exportPLS, "Write mesh in PLS format.");
 	app.add_flag("-f", exportFacet, "Write mesh in facet format.");
 	app.add_flag("-o", exportOBJ, "Write mesh in OBJ format.");
+	app.add_flag("--stl_in", exportStlIn, "Write mesh in stl.in format.");
 	app.add_option("--reparam", reparam_way, "input reparameter way. 0 is tuttle. 1 is harmonic.");
 	app.add_option("--create_box", createbox, "input bounding box. Format is (x1_min, y1_min, z1_min, x1_max, y1_max, z1_max, ...)");
 	app.add_flag("--reverse_orient", reverseFacetOrient, "Reverse Facet Orient.");
@@ -234,6 +236,11 @@ int main(int argc, char **argv)
 	{
 		string output_filename = input_filename.substr(0, input_dotpos) + suffix + ".o.obj";
 		MESHIO::writeOBJ(output_filename, mesh);
+	}
+	if(exportStlIn)
+	{
+		string output_filename = input_filename.substr(0, input_dotpos) + suffix + "_stl.in";
+		MESHIO::writeStlIn(output_filename, mesh);
 	}
 
 	cout << "Write " << mesh.Vertex.rows() << " points." << endl;

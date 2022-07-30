@@ -831,3 +831,26 @@ int MESHIO::readTetgen(string nodefilename, string elefilename, Mesh &mesh) {
 
     return 1;
 }
+
+int MESHIO::writeStlIn(std::string filename, const Mesh &mesh)
+{
+    auto& M = mesh.Masks;
+	auto& V = mesh.Vertex;
+	auto& T = mesh.Topo;
+    std::ofstream f(filename);
+    if(!f.is_open()) {
+        std::cout << "Write VTK file failed. - " << filename << std::endl;
+        return -1;
+    }
+    std::cout << "Writing mesh to - " << filename << std::endl;
+    f.precision(std::numeric_limits<double>::digits10 + 1);
+    f << T.rows() << " " << V.rows() << " 0 0 0 0\n";
+    for(int i = 0; i < V.rows(); i++)
+        f << i + 1 << " " << V(i, 0) << " " << V(i, 1) << " " << V(i, 2) << std::endl;
+    for(int i = 0; i < T.rows(); ++i)
+    {
+        f << i + 1 << " " << T(i, 0) + 1 << " " <<
+        T(i, 1) + 1 << " " << T(i, 2) + 1 << " " << M(i, 0) + 1 << "\n";
+    }
+    f.close();
+}

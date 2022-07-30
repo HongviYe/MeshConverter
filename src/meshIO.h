@@ -37,6 +37,7 @@ int writePLY(std::string filename, const Mesh &mesh);
 int writePLS(std::string filename, const Mesh &mesh);
 int writeFacet(std::string filename, const Mesh &mesh);
 int writeOBJ(std::string filename, const Mesh &mesh);
+int writeStlIn(std::string filename, const Mesh &mesh);
 
 }
 
