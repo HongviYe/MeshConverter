@@ -15,6 +15,9 @@ else()
     set (GITHUB_REPOSITE "github.com")
 endif()
 include(MeshConverterDependencies)
+IF(MSVC)
+ add_compile_options(-bigobj)
+endif()
 set(SOURCES
     src/meshIO.cpp
     src/meshAlgorithm.cpp
@@ -24,4 +27,5 @@ include_directories(./extern/cli11)
 include_directories(${EIGEN_BASE})
 include_directories(./extern/meshorient/include)
 add_executable(MeshConverter ${SOURCES})
+
 target_link_libraries(MeshConverter MeshOrient)

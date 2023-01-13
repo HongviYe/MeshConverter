@@ -68,7 +68,6 @@ int MESHIO::readVTK(std::string filename, Mesh& mesh, std::string mark_pattern) 
 	auto& M = mesh.Masks;
 	auto& V = mesh.Vertex;
 	auto& T = mesh.Topo;
-    M.resize(1, 1);
     int nPoints = 0;
     int nFacets = 0;
     std::ifstream vtk_file;
@@ -273,6 +272,19 @@ int MESHIO::writeVTK(std::string filename, const Mesh &mesh, std::string mark_pa
         for(int j = 0; j < M.cols(); j++)
             f << M(i, j);
         f << std::endl;
+    }
+    if(T.cols() == 3)
+    {
+        std::cout << "This have normal information.\n";
+        f << "NORMALS facet_normals double\n";
+        for(int i = 0; i < T.rows(); i++)
+        {
+            Eigen::Vector3d ab = V.row(T(i, 1)) - V.row(T(i, 0));
+            Eigen::Vector3d ac = V.row(T(i, 2)) - V.row(T(i, 0));
+            Eigen::Vector3d t_nor = ab.cross(ac);
+            t_nor.normalize();
+            f << t_nor.x() << " " << t_nor.y() << " " << t_nor.z() << std::endl;
+        }
     }
     f << std::endl;
     f.close();
@@ -504,10 +516,20 @@ int MESHIO::writePLS(std::string filename, const Mesh &mesh)
 	
 	int diff = 1 - minmask;// min mask must be one in pls
 
+
+	plsfile.precision(15);
     for(int i = 0; i < V.rows(); i++)
         plsfile << i + 1 << " " << V(i, 0) << " " << V(i, 1) << " " << V(i, 2) << std::endl;
-    for(int i = 0; i < T.rows(); i++)
-        plsfile << i + 1 << " " << T(i, 0) + 1 << " " << T(i, 1) + 1 << " " << T(i, 2) + 1 << " " << M(i, 0)+ diff << std::endl;
+
+	for (int i = 0; i < T.rows(); i++) {
+		plsfile << i + 1 << " " << T(i, 0) + 1 << " " << T(i, 1) + 1 << " " << T(i, 2) + 1;
+		if (M.rows() && M.cols())
+			plsfile << " " << M(i, 0);
+		else
+			plsfile << " " << 1;
+		plsfile << std::endl;
+	}
+
         
     plsfile.close();
     std::cout << "Finish\n";
@@ -820,4 +842,27 @@ int MESHIO::readTetgen(string nodefilename, string elefilename, Mesh &mesh) {
     elefile.close();
 
     return 1;
+}
+
+int MESHIO::writeStlIn(std::string filename, const Mesh &mesh)
+{
+    auto& M = mesh.Masks;
+	auto& V = mesh.Vertex;
+	auto& T = mesh.Topo;
+    std::ofstream f(filename);
+    if(!f.is_open()) {
+        std::cout << "Write VTK file failed. - " << filename << std::endl;
+        return -1;
+    }
+    std::cout << "Writing mesh to - " << filename << std::endl;
+    f.precision(std::numeric_limits<double>::digits10 + 1);
+    f << T.rows() << " " << V.rows() << " 0 0 0 0\n";
+    for(int i = 0; i < V.rows(); i++)
+        f << i + 1 << " " << V(i, 0) << " " << V(i, 1) << " " << V(i, 2) << std::endl;
+    for(int i = 0; i < T.rows(); ++i)
+    {
+        f << i + 1 << " " << T(i, 0) + 1 << " " <<
+        T(i, 1) + 1 << " " << T(i, 2) + 1 << " " << M(i, 0) + 1 << "\n";
+    }
+    f.close();
 }

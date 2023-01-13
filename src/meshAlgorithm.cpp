@@ -1,7 +1,21 @@
 #include "meshAlgorithm.h"
 #include "MeshOrient.h"
+
+#include <igl/bfs_orient.h>
+#include <igl/map_vertices_to_circle.h>
+#include <igl/remove_duplicate_vertices.h>
+#include <igl/harmonic.h>
+
+
+#include <set>
+#include <unordered_map>
+#include <cmath>
+#include <algorithm> // std::move_backward
+#include <random> // std::default_random_engine
+#include <chrono> // std::chrono::system_clock
 #include <iostream>
 #include <set>
+#include <array>
 
 using namespace std;
 
@@ -64,6 +78,176 @@ bool MESHIO::rotatePoint(vector<double> rotateVec, Mesh &mesh)
 	}
 	return 1;
 }
+
+/**
+ * @brief Create a Box object
+ * 
+ * @param create_box 
+ * @param mesh 
+ * @return true 
+ * @return false 
+ */
+bool MESHIO::createBox(std::vector<double> create_box, Mesh &mesh)
+{
+	/***************************
+	 *          | Z
+	 * 			|
+	 * 			|
+	 * 			|__ __ __ __ Y
+	 * 		   /o
+	 * 		  /
+	 *       / X
+	/***************************
+	 *    4 _________2
+	 *     /|        /|
+	 *   3/_|______1/ |
+	 *    | |8_____|__|6
+	 *    | /      | /
+	 *  7 |/_______|/5
+	 ****************************/
+
+	vector<int> boxTri = {
+			1, 4, 2, // up
+			1, 3, 4, // up
+			5, 6, 8, // down
+			5, 8, 7, // down
+			5, 3, 1, // front
+			5, 7, 3, // front
+			6, 2, 4, // behind
+			6, 4, 8, // behind
+			7, 8, 4, // left
+			7, 4, 3, // left
+			5, 1, 2, // right
+			5, 2, 6  // right
+	};
+	
+	int box_num = create_box.size() / 6;
+
+	mesh.Vertex.resize(box_num * 8, 3);
+	mesh.Topo.resize(boxTri.size() / 3 * box_num, 3);
+	mesh.Masks.resize(mesh.Topo.rows(), 1);
+
+	std::cout << "Create the number of box is " << box_num << std::endl;
+	std::cout << "Create the number of point is " << mesh.Vertex.rows() << std::endl;
+	std::cout << "Create the number of tritopo is " << mesh.Topo.rows() << std::endl;
+
+	int base_v = 0;
+	int base_t = 0;
+	int base_c = 0;
+
+	for(int i = 0; i < create_box.size(); i += 6)
+	{
+		Eigen::Vector3d minn, maxx;
+		minn = Eigen::Vector3d(create_box[i + 0], create_box[i + 1], create_box[i + 2]).cwiseMin(Eigen::Vector3d(create_box[i + 3], create_box[i + 4], create_box[i + 5]));
+		maxx = Eigen::Vector3d(create_box[i + 0], create_box[i + 1], create_box[i + 2]).cwiseMax(Eigen::Vector3d(create_box[i + 3], create_box[i + 4], create_box[i + 5]));
+
+		Eigen::Vector3d V_lst[8];
+		
+		mesh.Vertex.row(base_v + 0) = maxx;
+		mesh.Vertex.row(base_v + 1) = Eigen::Vector3d( minn.x(), maxx.y(), maxx.z() );
+		mesh.Vertex.row(base_v + 2) = Eigen::Vector3d( maxx.x(), minn.y(), maxx.z() );
+		mesh.Vertex.row(base_v + 3) = Eigen::Vector3d( minn.x(), minn.y(), maxx.z() );
+		mesh.Vertex.row(base_v + 4) = Eigen::Vector3d( maxx.x(), maxx.y(), minn.z() );
+		mesh.Vertex.row(base_v + 5) = Eigen::Vector3d( minn.x(), maxx.y(), minn.z() );
+		mesh.Vertex.row(base_v + 6) = Eigen::Vector3d( maxx.x(), minn.y(), minn.z() );
+		mesh.Vertex.row(base_v + 7) = minn;
+
+		for(int j = 0; j < boxTri.size() / 3; j++)
+		{
+			mesh.Masks(base_t + j, 0) = base_c;
+			mesh.Topo.row(base_t + j) = Eigen::Vector3i( base_v + boxTri[j * 3 + 0] - 1,
+														 base_v + boxTri[j * 3 + 1] - 1,
+														 base_v + boxTri[j * 3 + 2] - 1);
+		}
+		base_v += 8;
+		base_t += 12;
+		base_c += 1;
+	}
+	return true;
+	
+}
+
+bool MESHIO::removeBox(Mesh & mesh)
+{
+	Eigen::VectorXi component;
+	Eigen::MatrixXi tmp = mesh.Topo;
+	igl::bfs_orient(tmp, mesh.Topo, component);
+
+	map<int, double> vols;
+	for (int j = 0; j < component.rows(); j++) {
+		if (vols.find(component(j)) == vols.end())
+			vols[component(j)] = 0;
+		vols[component(j)] += std::fabs(igl::volume_single(
+			static_cast<Eigen::RowVector3d>(mesh.Vertex.row(mesh.Topo(j, 0))),
+			static_cast<Eigen::RowVector3d>(mesh.Vertex.row(mesh.Topo(j, 1))),
+			static_cast<Eigen::RowVector3d>(mesh.Vertex.row(mesh.Topo(j, 2))),
+			Eigen::RowVector3d(0, 0, 0)));
+	}
+
+	auto maxi = std::max_element(vols.begin(), vols.end(), 
+		[](std::pair<int, double> t1, std::pair<int, double> t2) {return t1.second < t2.second; })->first;
+	std::map<int, int> index_map; // new to old
+	std::map<int, int> index_rmap; // old to new
+	int topo_count = 0;
+	for (int j = 0; j < component.rows(); j++) {
+		if (component(j) != maxi) {
+			topo_count++;
+			for (int k = 0; k < 3; k++) {
+				int index = mesh.Topo(j, k);
+				if (index_rmap.find(index) == index_rmap.end()) {
+					int newid = index_rmap.size();
+					index_rmap[index] = newid;
+					index_map[newid] = index;
+				}
+			}
+		}
+	}
+	Eigen::MatrixXd new_vertex;
+	Eigen::MatrixXi new_topo;
+	new_topo.resize(topo_count, 3);
+	new_vertex.resize(index_map.size(), 3);
+	for (int i = 0; i < index_map.size(); i++) {
+
+		new_vertex.row(i) = static_cast<Eigen::RowVector3d>(mesh.Vertex.row(index_map[i]));
+	}
+	topo_count = 0;
+	for (int j = 0; j < component.rows(); j++) {
+		if (component(j) != maxi) {		
+			for (int k = 0; k < 3; k++) {
+				new_topo(topo_count, k) = index_rmap[mesh.Topo(j, k)];
+			}
+			topo_count++;
+		}
+	}
+
+
+
+	if (mesh.Masks.rows() == mesh.Vertex.rows()) {
+		for (int i = 0; i < index_map.size(); i++) {
+			mesh.Masks.row(i) = mesh.Masks.row(index_map[i]);
+		}
+		mesh.Masks.conservativeResize(mesh.Vertex.rows(),mesh.Masks.cols());
+	}
+	if (mesh.Masks.rows() == mesh.Topo.rows()) {
+		topo_count = 0;
+		for (int j = 0; j < component.rows(); j++) {
+			if (component(j) != maxi) {
+				mesh.Masks.row(topo_count) = mesh.Masks.row(j);
+				topo_count++;
+			}
+		}
+		mesh.Masks.conservativeResize(mesh.Topo.rows(), mesh.Masks.cols());
+	}
+
+
+
+	mesh.Vertex = new_vertex;
+	mesh.Topo = new_topo;
+	
+	return true;
+}
+
+
 
 /**
  * Add bounding box.
@@ -393,5 +577,404 @@ bool MESHIO::resetOrientation(Mesh &mesh, bool reset_mask) {
 				mesh.Masks(i,0) = block_mark[i];
 			}
 	}
+	cout << "Orientation reset" << endl;
+	return 1;
+}
+/**
+ * sort eigen vector
+ * @param in_vec
+ * @param out_vec
+ * @param ind   index
+ */
+void eigen_sort_3d(const Eigen::MatrixXd& in_vec, Eigen::MatrixXd& out_vec, Eigen::VectorXi& ind, double eps)
+{
+	ind = Eigen::VectorXi::LinSpaced(in_vec.rows(), 0, in_vec.rows() - 1);
+	auto rule = [&in_vec, &eps](int i, int j)->bool{
+		if( fabs(in_vec(i, 0) - in_vec(j, 0)) > eps) return in_vec(i, 0) < in_vec(j, 0);
+		if( fabs(in_vec(i, 1) - in_vec(j, 1)) > eps) return in_vec(i, 1) < in_vec(j, 1);
+		if( fabs(in_vec(i, 2) - in_vec(j, 2)) > eps) return in_vec(i, 2) < in_vec(j, 2);
+		return i < j;
+	};
+	std::sort(ind.data(), ind.data() + ind.size(), rule);
+	out_vec.resize(in_vec.rows(), in_vec.cols());
+	for(int i = 0; i < in_vec.rows(); i++)
+	{
+		out_vec.row(i) << in_vec.row(ind(i));
+	}
+}
+
+/**
+ * Remove dulplicate point.
+ * @param V
+ * @param T
+ */
+bool MESHIO::removeDulplicatePoint(Eigen::MatrixXd& V, Eigen::MatrixXi& F, double eps){
+	Eigen::MatrixXd V_in = V;
+	Eigen::MatrixXi F_in = F;
+	Eigen::MatrixXd V_sort;
+	Eigen::VectorXi ind;
+	eigen_sort_3d(V_in, V_sort, ind, eps);
+	int cnt = 0;
+	std::unordered_map<int, int> mpid;
+	std::vector<int> new_point_lst;
+	for(int i = 0; i < V_sort.rows(); i++)
+	{
+		while (i + 1 < V_sort.rows())
+		{
+			if( (V_sort.row(i + 1) - V_sort.row(i)).norm() < eps )
+			{
+				mpid[ ind[i] ] = cnt;
+				i++;
+			}
+			else break;
+		}
+
+		mpid[ind[i]] = cnt;
+		new_point_lst.push_back(ind[i]);
+		cnt++;
+	}
+
+	V.resize(new_point_lst.size(), 3);
+	F.resize(F_in.rows(), 3);
+
+	for(int i = 0; i < new_point_lst.size(); i++)
+	{
+		V.row(i) = V_in.row(new_point_lst[i]);
+	}
+
+	for(int i = 0; i < F_in.rows(); i++)
+	{
+		for(int j = 0; j < 3; j++)
+		{
+			F(i, j) = mpid[ F_in(i, j) ];
+		}
+	}
+
+	std::cout << "Remove " << V_in.rows() - V.rows() << " duplicate points\n";
+	return true;
+
+}
+
+void MESHIO::dfs_get_loop2(int cur, int pre, std::vector<bool>& vis, std::vector<std::vector<int>>& G, std::vector<int>& path, std::vector<std::vector<int>>& loop_lst)
+{
+	if(vis[cur])
+	{
+		std::vector<int> tmp;
+		for(int i = path.size() - 2; i >= 0; i--)
+		{
+			if(path[i] != cur)
+			{
+				tmp.push_back(path[i]);
+			}
+			else
+			{
+				tmp.push_back(path[i]);
+				break;
+			}
+		}
+		loop_lst.push_back(tmp);
+		return ;
+	}
+
+	vis[cur] = 1;
+	for(int i = 0; i < G[cur].size(); i++)
+	{
+		if(G[cur][i] == pre) continue;
+		path.push_back(G[cur][i]);
+		dfs_get_loop2(G[cur][i], cur, vis, G, path, loop_lst);
+		path.pop_back();
+	}
+	vis[cur] = 0;
+
+}
+
+void MESHIO::boundary_loop_by_dfs2(Eigen::MatrixXd& V, Eigen::MatrixXi& F, Eigen::VectorXi& bnd)
+{
+	double eps = 1e-6;
+	Eigen::MatrixXd V_tmp;
+	Eigen::MatrixXi F_tmp;
+	Eigen::VectorXi ind;
+
+	V_tmp = V;
+	F_tmp = F;
+
+	bool b_dulplicated_point = false;
+	if(b_dulplicated_point)
+	{
+		for(int i = 0; i < V.rows(); i++)
+		{
+			for(int j = i + 1; j < V.rows(); j++)
+			if( (V.row(i) - V.row(j)).norm() < eps )
+			{
+				std::cout << "Warning : boundary loop have dulplicate point.\n";
+				break;
+			}
+		}
+	}
+
+	// To find all boundary for building graph.
+	std::vector<std::vector<int>> G(V.rows(), std::vector<int>());
+	std::map<std::array<int, 2> , int> mp;
+	std::vector<bool> vis(V.rows(), 0);
+	std::vector<std::vector<int>> loop_lst;
+	std::vector<int> path;
+	std::set<int> num_p_set;
+
+	for(int i = 0; i < F.rows(); i++)
+	{
+		for(int j = 0; j < 3; j++)
+		{
+			int a = F(i, j);
+			int b = F(i, (j + 1) % 3 );
+			std::array<int, 2> tmp = {std::min(a, b), std::max(a, b)};
+			mp[tmp]++;
+		}
+	}
+
+	for(auto iter = mp.begin(); iter != mp.end(); iter++)
+	{
+		if( iter->second == 1 )
+		{
+			G[iter->first[0]].push_back(iter->first[1]);
+			G[iter->first[1]].push_back(iter->first[0]);
+			// std::cout << iter->first[0] << " " << iter->first[1] << '\n';
+			num_p_set.insert(iter->first[0]);
+			num_p_set.insert(iter->first[1]);
+		}
+	}
+
+	int start = *num_p_set.begin();
+	path.push_back(start);
+	MESHIO::dfs_get_loop2(start, -1, vis, G, path, loop_lst);
+
+	for(int i = 0; i < loop_lst.size(); i++)
+	{
+		std::cout << "#BK The " << i << "th loop number is : " << loop_lst[i].size() << '\n';
+	}
+
+	sort(loop_lst.begin(), loop_lst.end(), [&V](std::vector<int>& a, std::vector<int>& b){
+		double len_a = 0.0;
+		double len_b = 0.0;
+
+		for(int i = 0; i < a.size(); i++)
+		{
+			len_a += (V.row(i) - V.row((i + 1) % a.size())).norm();
+		}
+
+		for(int i = 0; i < b.size(); i++)
+		{
+			len_b += (V.row(i) - V.row((i + 1) % b.size())).norm();
+		}
+		
+		return len_a > len_b;
+	});	
+
+
+	int s = loop_lst[0][0];
+	int e = loop_lst[0][1];
+	int ok = 0;
+	for(int i = 0; i < F.rows(); i++)
+	{
+		for(int j = 0; j < 3; j++)
+		{
+			int a = F(i, j);
+			int b = F(i, (j + 1) % 3 );
+			if(a == s && b == e)
+			{
+				ok = 1;
+			}
+		}
+		if(ok) break;
+	}
+
+	if(!ok)
+	{
+		std::reverse(loop_lst[0].begin(), loop_lst[0].end());
+	}
+
+	bnd.resize(loop_lst[0].size(), 1);
+	for(int i = 0; i < loop_lst[0].size(); i++)
+	{
+		bnd(i) = loop_lst[0][i];
+	}
+
+}
+
+bool MESHIO::buildTuttleParameter( Eigen::MatrixXd& V_3d, Eigen::MatrixXi& T_3d, Eigen::MatrixXd& V_uv )
+{
+	Eigen::MatrixXi C;
+  Eigen::VectorXi bnd;
+
+	igl::bfs_orient(T_3d, T_3d, C);
+
+
+  // remove duplicate point
+  double minn_size = std::numeric_limits<double>::max();
+
+  for(int i = 0; i < T_3d.rows(); i++)
+  {
+    for(int j = 0; j < 3; j++)
+    {
+      int a = T_3d(i, j);
+      int b = T_3d(i, (j + 1) % 3);
+      minn_size = std::min(minn_size, (V_3d.row(a) - V_3d.row(b)).norm() );
+    }
+  }
+  minn_size = sqrt(minn_size);
+  Eigen::MatrixXd tmpV = V_3d;
+  Eigen::MatrixXi tmpT = T_3d;
+  Eigen::MatrixXi SVI, SVJ;
+  igl::remove_duplicate_vertices(tmpV, tmpT, minn_size / 1000.0, V_3d, SVI, SVJ, T_3d);
+
+  // removeDulplicatePoint(V_3d, T_3d, minn_size / 1000.0);
+  int V_N = V_3d.rows();
+
+  boundary_loop_by_dfs2(V_3d, T_3d, bnd); // mine
+    
+  // Map the boundary to a circle, preserving edge proportions
+  Eigen::MatrixXd bnd_uv;
+  igl::map_vertices_to_circle(V_3d, bnd, bnd_uv);
+
+
+  // build adj relation
+  std::vector<std::vector<int>> adj(V_N);
+  for(int i = 0; i < T_3d.rows(); i++)
+  {
+    for(int j = 0; j < 3; j++)
+    {
+      int a = T_3d(i, j);
+      int b = T_3d(i, (j + 1) % 3);
+      adj[a].push_back(b);
+      adj[b].push_back(a);
+    }
+  }
+
+  typedef Eigen::Triplet<double> T;
+	typedef Eigen::SparseMatrix<double> SMatrix;
+
+	std::vector<T> tripletlist;
+	Eigen::VectorXd bu = Eigen::VectorXd::Zero(V_N);
+	Eigen::VectorXd bv = Eigen::VectorXd::Zero(V_N);
+
+  std::unordered_map<int, bool> is_boundary;
+  std::unordered_map<int, Eigen::Vector2d> mp_bnd;
+  for(int i = 0; i < bnd.rows(); i++)
+  {
+    is_boundary[bnd(i, 0)] = 1;
+    mp_bnd[bnd(i, 0)] = bnd_uv.row(i);
+  }
+
+  for(int i = 0; i < V_N; ++i)
+  {
+    if(is_boundary[i])
+    {
+      tripletlist.emplace_back(i, i, 1);
+      bu(i) = mp_bnd[i].x();
+      bv(i) = mp_bnd[i].y();
+    }
+    else{
+      for(int j = 0; j < adj[i].size(); j++)
+      {
+        tripletlist.emplace_back(i, adj[i][j], -1);
+      }
+      tripletlist.emplace_back(i, i, adj[i].size());
+    }
+  }
+
+  SMatrix coff(V_N, V_N);
+  coff.setFromTriplets(tripletlist.begin(), tripletlist.end());
+  Eigen::SparseLU<SMatrix> solver;
+  solver.compute(coff);
+
+  Eigen::VectorXd xu = solver.solve(bu);
+  Eigen::VectorXd xv = solver.solve(bv);
+
+  V_uv.resize(V_N, 2);
+
+  V_uv.col(0) = xu;
+  V_uv.col(1) = xv;
+
+  std::cout << "Build tuttle parameter is success.\n";
+	return 1;
+}
+
+
+bool MESHIO::buildHarmonicParameter(Eigen::MatrixXd& V_3d, Eigen::MatrixXi& T_3d, Eigen::MatrixXd& V_uv)
+{
+  Eigen::VectorXi bnd;
+
+  // remove duplicate point
+  double minn_size = std::numeric_limits<double>::max();
+
+  for(int i = 0; i < T_3d.rows(); i++)
+  {
+    for(int j = 0; j < 3; j++)
+    {
+      int a = T_3d(i, j);
+      int b = T_3d(i, (j + 1) % 3);
+      minn_size = std::min(minn_size, (V_3d.row(a) - V_3d.row(b)).norm() );
+    }
+  }
+  minn_size = sqrt(minn_size);
+  Eigen::MatrixXd tmpV = V_3d;
+  Eigen::MatrixXi tmpT = T_3d;
+  Eigen::MatrixXi SVI, SVJ;
+  igl::remove_duplicate_vertices(tmpV, tmpT, minn_size / 1000.0, V_3d, SVI, SVJ, T_3d);
+
+  boundary_loop_by_dfs2(V_3d, T_3d, bnd); // mine
+
+  // Map the boundary to a circle, preserving edge proportions
+  Eigen::MatrixXd bnd_uv;
+  igl::map_vertices_to_circle(V_3d, bnd, bnd_uv);
+
+  igl::harmonic(V_3d, T_3d, bnd, bnd_uv, 1, V_uv);
+
+  // Scale UV to make the texture more clear
+  // V_uv *= 10000;
+
+  std::cout << "Build harmonic parameter is success.\n";
+	return 1;
+}
+
+bool MESHIO::shuffleSurfaceid(int num, Mesh& mesh)
+{
+	num = std::min(100, num);
+	num = std::max(1, num);
+	
+	auto& M = mesh.Masks;
+	auto& V = mesh.Vertex;
+	auto& T = mesh.Topo;
+	std::vector<int> random_id;
+
+	if(M.cols() != 1) return 0;
+
+	std::unordered_map<int, int> mp_id;
+	int cnt = 1;
+	for(int i = 0; i < M.rows(); i++)
+	{
+		if(mp_id[M(i, 0)]) continue;
+		mp_id[M(i, 0)] = cnt++;
+	}
+
+	for(int i = 0; i < cnt; ++i)
+	{
+		random_id.push_back(i);
+	}
+
+	for(int i = 0; i < std::min(100, num); ++i)
+	{
+  	std::shuffle (random_id.begin (), random_id.end (), std::default_random_engine (i));
+	}
+
+	set<int> tt;
+	for(int i = 0; i < M.rows(); ++i)
+	{
+		if(M(i, 0) == random_id[mp_id[M(i, 0)] - 1])
+		{
+			tt.insert(M(i, 0));
+		}
+		M(i, 0) = random_id[ mp_id[M(i, 0)] - 1];
+	}
+	std::cout << "After shuffle the number of dulplication is : " << tt.size() << "\n";
 	return 1;
 }
