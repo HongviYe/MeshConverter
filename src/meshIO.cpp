@@ -496,10 +496,18 @@ int MESHIO::writePLS(std::string filename, const Mesh &mesh)
     std::ofstream plsfile;
     plsfile.open(filename);
     plsfile << T.rows() << " " << V.rows() << " " << "0 0 0 0\n";
+
+	int minmask = std::numeric_limits<int>::max();
+	for (int i = 0; i < T.rows(); i++) {
+		minmask = min(M(i, 0), minmask);
+	}
+	
+	int diff = 1 - minmask;// min mask must be one in pls
+
     for(int i = 0; i < V.rows(); i++)
         plsfile << i + 1 << " " << V(i, 0) << " " << V(i, 1) << " " << V(i, 2) << std::endl;
     for(int i = 0; i < T.rows(); i++)
-        plsfile << i + 1 << " " << T(i, 0) + 1 << " " << T(i, 1) + 1 << " " << T(i, 2) + 1 << " " << M(i, 0)  << std::endl;
+        plsfile << i + 1 << " " << T(i, 0) + 1 << " " << T(i, 1) + 1 << " " << T(i, 2) + 1 << " " << M(i, 0)+ diff << std::endl;
         
     plsfile.close();
     std::cout << "Finish\n";

@@ -1,6 +1,7 @@
 #include "meshAlgorithm.h"
 #include "MeshOrient.h"
 #include <iostream>
+#include <set>
 
 using namespace std;
 
@@ -310,6 +311,58 @@ bool MESHIO::repair(Mesh &mesh)
 	return 0;
 }
 
+void MESHIO::checkOrientation(Mesh& mesh) {
+
+	vector<vector<double>> point_list(mesh.Vertex.rows(), vector<double>(mesh.Vertex.cols(), 0));
+	vector<vector<int>> facet_list(mesh.Topo.rows(), vector<int>(mesh.Topo.cols(), 0));
+	for (int i = 0; i < mesh.Vertex.rows(); i++) {
+		for (int j = 0; j < mesh.Vertex.cols(); j++) {
+			point_list[i][j] = mesh.Vertex(i, j);
+		}
+	}
+	for (int i = 0; i < mesh.Topo.rows(); i++) {
+		for (int j = 0; j < mesh.Topo.cols(); j++) {
+			facet_list[i][j] = mesh.Topo(i, j);
+		}
+	}
+
+	//[](vector<int>& a,vector<int>& b) {}
+	vector<vector<int>>  facet_list_copy = facet_list;
+	vector<int> block_mark;
+	TIGER::resetOrientation(point_list, facet_list, block_mark);
+
+
+	std::set<vector<int>> qs;
+	for (auto i : facet_list) {
+		
+		int id=	std::min_element(i.begin(), i.end())-i.begin();
+		qs.insert(vector<int>{i[id], i[(id + 1) % 3], i[(id + 2) % 3]});
+	}
+
+	int message_count = 0;
+	for (int j = 0; j < facet_list_copy.size(); j++) {
+		swap(facet_list_copy[j][0], facet_list_copy[j][1]);
+		if (message_count > 100) {
+			cout << "Too much oritation error! program finished.";
+			break;
+		}
+		int id = std::min_element(facet_list_copy[j].begin(), facet_list_copy[j].end()) - facet_list_copy[j].begin();
+		vector<int> vep = vector<int>{ facet_list_copy[j][id], facet_list_copy[j][(id + 1) % 3], facet_list_copy[j][(id + 2) % 3] };
+
+		if (qs.find(vep) == qs.end()) {
+			message_count++;
+			cout << "ortient error found in face id=" << j << endl;
+			for (auto k : vep) {
+				cout << k << " ";
+			}
+			cout << endl;
+		//	break;
+		}
+	}
+
+	return ;
+
+}
 bool MESHIO::resetOrientation(Mesh &mesh, bool reset_mask) {
 	vector<vector<double>> point_list(mesh.Vertex.rows(), vector<double>(mesh.Vertex.cols(), 0));
 	vector<vector<int>> facet_list(mesh.Topo.rows(), vector<int>(mesh.Topo.cols(), 0));

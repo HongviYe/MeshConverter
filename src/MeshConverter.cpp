@@ -18,6 +18,7 @@ int main(int argc, char** argv) {
 	bool exportFacet = false;
 	bool exportOBJ = false;
 	bool resetOritation = false;
+	bool checkOritation = false;
 	bool reverseFacetOrient = false;
 	bool RepairZeroAera = false;
 	bool resetOritationFaceid = false;
@@ -37,6 +38,7 @@ int main(int argc, char** argv) {
 	app.add_flag("-o", exportOBJ, "Write mesh in OBJ format.");
 	app.add_flag("--reverse_orient", reverseFacetOrient, "Reverse Facet Orient.");
 	app.add_flag("--reset_orient", resetOritation, "Regularize oritation");
+	app.add_flag("--check_orient", checkOritation, "Check oritation error");
 	app.add_flag("--reset_orient_faceid", resetOritationFaceid, "Regularize oritation and reset the facet mask by connected graph compoment index.");
 	app.add_flag("--rm_zero_area", RepairZeroAera, "Repair mesh file for the facet's area that equal to zero.");
 
@@ -119,6 +121,8 @@ int main(int argc, char** argv) {
 		MESHIO::resetOrientation(mesh);
 	if (resetOritationFaceid)
 		MESHIO::resetOrientation(mesh,true);
+	if (checkOritation)
+		MESHIO::checkOrientation(mesh);
 
 	//********* modify facet orient ******
 	if(reverseFacetOrient){
