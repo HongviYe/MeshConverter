@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 	app.add_flag("--stl_in", exportStlIn, "Write mesh in stl.in format.");
 	app.add_flag("--shuffle", shuffleMark, "Shuffle surface_id for view clearly.");
 	app.add_option("--shuffle_num", shuffle_num, "Shuffle number is [1, 100].");
-	app.add_option("--reparam", reparam_way, "input reparameter way. 0 is tuttle. 1 is harmonic.");
+	app.add_option("--reparam", reparam_way, "input reparameter way. 0 is Tuttle. 1 is harmonic.");
 	app.add_option("--create_box", createbox, "input bounding box. Format is (x1_min, y1_min, z1_min, x1_max, y1_max, z1_max, ...)");
 	app.add_flag("--reverse_orient", reverseFacetOrient, "Reverse Facet Orient.");
 	app.add_flag("--reset_orient", resetOritation, "Regularize orientation");
@@ -56,7 +56,7 @@ int main(int argc, char **argv)
 	app.add_flag("--reset_orient_faceid", resetOritationFaceid, "Regularize orientation and reset the facet mask by connected graph component index.");
 	app.add_flag("--rm_zero_area", RepairZeroAera, "Repair mesh file for the facet's area that equal to zero.");
 	app.add_flag("--rm_box", removebox, "remove the component with the biggest volume. warning, the facet id may be reoriented");
-	app.add_flag("--rm_dulplicate_point", DeleteDulPoint, "Delete duplicate points; Format is : --rm_dulplicate_point=1e-3.");
+	app.add_flag("--rm_duplicate_point", DeleteDulPoint, "Delete duplicate points; Format is : e.g. --rm_duplicate_point=1e-6.");
 
 	if (resetOritationFaceid)
 		resetOritation = false;
