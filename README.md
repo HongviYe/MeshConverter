@@ -3,7 +3,7 @@ A format converter for surface mesh intergrated with small tools for fast surfac
 ## Build and installation
 If eigen already exists in your computer, set environment ```EIGEN_BASE``` to skip download eigen from gitlab.
 ## Supported fileformat
-Including *ASCII* based `vtk`,`pls`,`facet`,`msh`,`obj`. 
+Including *ASCII* based `vtk`,`pls`,`facet`,`msh`,`obj`,`ply`. 
 ## Converter file format
 example
 ```shell
@@ -38,7 +38,6 @@ Options:
 
 ### Reorient the mesh
 reset the oritation by DFS, the connected componment with biggest volume will be set pointed to the internal. The mask will also set as connected compoment index if `--reset_orient_Faceid` is checked.
-![before](./fig/before_set_faceid_small.png ) $\Rightarrow$ ![after](./fig/after_set_faceid_small.png )
 
 ### Reverse the orientation
 Reverse all the orientaion of facets
