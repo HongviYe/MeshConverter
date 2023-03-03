@@ -949,10 +949,10 @@ bool MESHIO::shuffleSurfaceid(int num, Mesh& mesh)
 	if(M.cols() != 1) return 0;
 
 	std::unordered_map<int, int> mp_id;
-	int cnt = 1;
+	int cnt = 0;
 	for(int i = 0; i < M.rows(); i++)
 	{
-		if(mp_id[M(i, 0)]) continue;
+		if(mp_id.count(M(i, 0))) continue;
 		mp_id[M(i, 0)] = cnt++;
 	}
 
@@ -969,11 +969,11 @@ bool MESHIO::shuffleSurfaceid(int num, Mesh& mesh)
 	set<int> tt;
 	for(int i = 0; i < M.rows(); ++i)
 	{
-		if(M(i, 0) == random_id[mp_id[M(i, 0)] - 1])
+		if(M(i, 0) == random_id[mp_id[M(i, 0)]])
 		{
 			tt.insert(M(i, 0));
 		}
-		M(i, 0) = random_id[ mp_id[M(i, 0)] - 1];
+		M(i, 0) = random_id[ mp_id[M(i, 0)] ];
 	}
 	std::cout << "After shuffle the number of dulplication is : " << tt.size() << "\n";
 	return 1;
