@@ -1,6 +1,7 @@
 #include "meshIO.h"
 #include "CLI11.hpp"
 #include "meshAlgorithm.h"
+#include "remesh.h"
 #include <iostream>
 
 #define _DEBUG_ 1
@@ -27,6 +28,7 @@ int main(int argc, char **argv)
 	bool RepairZeroAera = false;
 	bool resetOritationFaceid = false;
 	bool removebox = false;
+	bool bremesh = false;
 	double DeleteDulPoint = -1;
 	int reparam_way = -1;
 	int shuffle_num = 1;
@@ -46,6 +48,7 @@ int main(int argc, char **argv)
 	app.add_flag("-f", exportFacet, "Write mesh in facet format.");
 	app.add_flag("-o", exportOBJ, "Write mesh in OBJ format.");
 	app.add_flag("--stl_in", exportStlIn, "Write mesh in stl.in format.");
+	app.add_flag("--remesh", bremesh, "Remesh");
 	app.add_flag("--shuffle", shuffleMark, "Shuffle surface_id for view clearly.");
 	app.add_option("--shuffle_num", shuffle_num, "Shuffle number is [1, 100].");
 	app.add_option("--reparam", reparam_way, "input reparameter way. 0 is Tuttle. 1 is harmonic.");
@@ -165,6 +168,14 @@ int main(int argc, char **argv)
 			break;
 		}
 	}
+
+
+	//********* Remesh *********
+	if(bremesh)
+	{
+		MESHIO::remesh(mesh);
+	}
+
 	
 	//********* Rotate *********
 	if (!rotateVec.empty())

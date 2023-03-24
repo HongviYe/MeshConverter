@@ -21,7 +21,15 @@ endif()
 set(SOURCES
     src/meshIO.cpp
     src/meshAlgorithm.cpp
-    src/MeshConverter.cpp)
+    src/MeshConverter.cpp
+    src/remesh.cpp
+    
+    src/Halfedge/PolyMesh_Base.cpp
+    src/Halfedge/PolyMesh.cpp
+    src/Halfedge/PolyMeshIterators.cpp
+    src/Halfedge/AABB_Tree.cpp
+    
+    )
 include_directories(./src)
 include_directories(./extern/cli11)
 include_directories(${EIGEN_BASE})
