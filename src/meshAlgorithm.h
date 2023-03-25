@@ -26,6 +26,7 @@ namespace MESHIO{
 	bool buildTuttleParameter(Eigen::MatrixXd& V_3d, Eigen::MatrixXi& T_3d, Eigen::MatrixXd& V_uv);
 	bool buildHarmonicParameter(Eigen::MatrixXd& V_3d, Eigen::MatrixXi& T_3d, Eigen::MatrixXd& V_uv);
 	bool shuffleSurfaceid(int num, Mesh& mesh);
+	bool topoFillHole(Mesh& mesh);
 
 
   // called by the algorithm above.
@@ -35,9 +36,18 @@ namespace MESHIO{
   std::vector<std::vector<int>>& G, 
   std::vector<int>& path, 
   std::vector<std::vector<int>>& loop_lst);
-	void boundary_loop_by_dfs2(Eigen::MatrixXd& V, Eigen::MatrixXi& F, Eigen::VectorXi& bnd);
-
-
+	void boundary_loop_by_dfs2(Eigen::MatrixXd &V, Eigen::MatrixXi &F, Eigen::VectorXi &bnd);
+	template <
+			typename DerivedF,
+			typename Derivedb,
+			typename VectorIndex,
+			typename DerivedF_filled>
+	void topological_hole_fill(
+			const Eigen::MatrixBase<DerivedF> &F,
+			const Eigen::MatrixBase<Derivedb> &b,
+			const std::vector<VectorIndex> &holes,
+			Eigen::PlainObjectBase<DerivedF_filled> &F_filled,
+			Eigen::MatrixXd &V);
 }
 
 #endif

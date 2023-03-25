@@ -5,6 +5,10 @@
 #include <igl/map_vertices_to_circle.h>
 #include <igl/remove_duplicate_vertices.h>
 #include <igl/harmonic.h>
+#include <igl/boundary_loop.h>
+#include <igl/PI.h>
+#include <igl/flipped_triangles.h>
+#include <igl/topological_hole_fill.h>
 
 
 #include <set>
@@ -977,4 +981,80 @@ bool MESHIO::shuffleSurfaceid(int num, Mesh& mesh)
 	}
 	std::cout << "After shuffle the number of dulplication is : " << tt.size() << "\n";
 	return 1;
+}
+
+template <
+		typename DerivedF,
+		typename Derivedb,
+		typename VectorIndex,
+		typename DerivedF_filled>
+void MESHIO::topological_hole_fill(
+		const Eigen::MatrixBase<DerivedF> &F,
+		const Eigen::MatrixBase<Derivedb> &b,
+		const std::vector<VectorIndex> &holes,
+		Eigen::PlainObjectBase<DerivedF_filled> &F_filled,
+		Eigen::MatrixXd &V)
+{
+	int n_filled_faces = 0;
+	int num_holes = holes.size();
+	int real_F_num = F.rows();
+	const int V_rows = F.maxCoeff() + 1;
+
+	for (int i = 0; i < num_holes; i++)
+		n_filled_faces += holes[i].size();
+	Eigen::MatrixXd V_ = V;
+	F_filled.resize(n_filled_faces + real_F_num, 3);
+	F_filled.topRows(real_F_num) = F;
+	V.resize(V_rows + num_holes, 3);
+	V.topRows(V_rows) = V_;
+
+	int new_vert_id = V_rows;
+	int new_face_id = real_F_num;
+
+	for (int i = 0; i < num_holes; i++, new_vert_id++)
+	{
+		Eigen::Vector3d hole_v(0, 0, 0);
+		for (auto &bnd_id : holes[i])
+		{
+			hole_v += V.row(bnd_id);
+		}
+		hole_v /= holes[i].size();
+		V.row(new_vert_id) = hole_v;
+
+		int cur_bnd_size = holes[i].size();
+		int it = 0;
+		int back = holes[i].size() - 1;
+		F_filled.row(new_face_id++) << holes[i][it], holes[i][back], new_vert_id;
+		while (it != back)
+		{
+			F_filled.row(new_face_id++)
+					<< holes[i][(it + 1)],
+					holes[i][(it)], new_vert_id;
+			it++;
+		}
+	}
+	assert(new_face_id == F_filled.rows());
+	assert(new_vert_id == V_rows + num_holes);
+}
+
+bool MESHIO::topoFillHole(Mesh &mesh)
+{
+	auto &V = mesh.Vertex;
+	auto &F = mesh.Topo;
+	std::vector<std::vector<int>> all_bnds;
+	igl::boundary_loop(F, all_bnds);
+	// boundary_loop_by_dfs2(V, F, all_bnds); // mine
+
+	// Heuristic primary boundary choice: longest
+  auto primary_bnd = std::max_element(all_bnds.begin(), all_bnds.end(), [](const std::vector<int> &a, const std::vector<int> &b) { return a.size()>b.size(); });
+
+	Eigen::VectorXi bnd = Eigen::Map<Eigen::VectorXi>(primary_bnd->data(), primary_bnd->size());
+
+	// if there is a hole, fill it and erase additional vertices.
+	all_bnds.erase(primary_bnd);
+	Eigen::MatrixXi F_filled;
+	Eigen::MatrixXd &V_filled = V;
+	topological_hole_fill(F, bnd, all_bnds, F_filled, V_filled);
+	F = F_filled;
+	mesh.Masks.resize(0, 0);
 }

@@ -29,6 +29,7 @@ int main(int argc, char **argv)
 	bool resetOritationFaceid = false;
 	bool removebox = false;
 	bool bremesh = false;
+	bool fillhole = false;
 	double DeleteDulPoint = -1;
 	int reparam_way = -1;
 	int shuffle_num = 1;
@@ -49,6 +50,7 @@ int main(int argc, char **argv)
 	app.add_flag("-o", exportOBJ, "Write mesh in OBJ format.");
 	app.add_flag("--stl_in", exportStlIn, "Write mesh in stl.in format.");
 	app.add_flag("--remesh", bremesh, "Remesh");
+	app.add_flag("--fillhole", fillhole, "Fill hole by topology");
 	app.add_flag("--shuffle", shuffleMark, "Shuffle surface_id for view clearly.");
 	app.add_option("--shuffle_num", shuffle_num, "Shuffle number is [1, 100].");
 	app.add_option("--reparam", reparam_way, "input reparameter way. 0 is Tuttle. 1 is harmonic.");
@@ -170,11 +172,7 @@ int main(int argc, char **argv)
 	}
 
 
-	//********* Remesh *********
-	if(bremesh)
-	{
-		MESHIO::remesh(mesh);
-	}
+
 
 	
 	//********* Rotate *********
@@ -220,6 +218,19 @@ int main(int argc, char **argv)
 	{
 		MESHIO::removeDulplicatePoint(mesh.Vertex, mesh.Topo, DeleteDulPoint);
 	}
+
+		//********* HoleFill *********
+	if(fillhole){
+		MESHIO::topoFillHole(mesh);
+	}
+
+	//********* Remesh *********
+	if(bremesh)
+	{
+		MESHIO::remesh(mesh);
+	}
+	
+	
 
 
 	//********* Create some box ********
