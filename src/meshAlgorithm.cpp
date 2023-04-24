@@ -756,7 +756,7 @@ void MESHIO::boundary_loop_by_dfs2(Eigen::MatrixXd& V, Eigen::MatrixXi& F, Eigen
 		std::cout << "#BK The " << i << "th loop number is : " << loop_lst[i].size() << '\n';
 	}
 
-	sort(loop_lst.begin(), loop_lst.end(), [&V](std::vector<int>& a, std::vector<int>& b){
+	sort(loop_lst.begin(), loop_lst.end(), [&V](const std::vector<int>& a, const std::vector<int>& b){
 		double len_a = 0.0;
 		double len_b = 0.0;
 

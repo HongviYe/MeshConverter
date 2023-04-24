@@ -1,6 +1,7 @@
 cmake_minimum_required (VERSION 2.8)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 project(MeshConverter)
+set(CMAKE_CXX_FLAGS "-std=c++11" ${CMAKE_CXX_FLAGS})
 # options
 option(MESHORIENT_BUILD_EXECUTABLE "Build executable." OFF)
 if(NOT CMAKE_BUILD_TYPE)
