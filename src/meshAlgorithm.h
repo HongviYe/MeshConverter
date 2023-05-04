@@ -27,6 +27,7 @@ namespace MESHIO{
 	bool buildHarmonicParameter(Eigen::MatrixXd& V_3d, Eigen::MatrixXi& T_3d, Eigen::MatrixXd& V_uv);
 	bool shuffleSurfaceid(int num, Mesh& mesh);
 	bool topoFillHole(Mesh& mesh);
+	bool Normalize(Mesh & mesh);
 
 
   // called by the algorithm above.

@@ -171,6 +171,24 @@ bool MESHIO::createBox(std::vector<double> create_box, Mesh &mesh)
 	
 }
 
+bool MESHIO::Normalize(Mesh & mesh) {
+	Eigen::Vector3d maxC(-std::numeric_limits<double>::max(),-std::numeric_limits<double>::max(),-std::numeric_limits<double>::max());
+	Eigen::Vector3d minC=-maxC;
+	for(int j=0;j<mesh.Vertex.rows();j++)
+	for (int i = 0; i < 3; i++) {
+		maxC(i) = std::max(mesh.Vertex(j, i), maxC(i));
+		minC(i) = std::min(mesh.Vertex(j, i), minC(i));
+	}
+	double scale = 0;
+	for (int i = 0; i < 3; i++) {
+		scale = std::max(scale,maxC(i)-minC(i));
+	}
+	for (int j = 0; j < mesh.Vertex.rows(); j++)
+		for (int i = 0; i < 3; i++) {
+			mesh.Vertex(j, i) = (mesh.Vertex(j, i) - minC(i)) / scale;
+		}
+	return true;
+}
 bool MESHIO::removeBox(Mesh & mesh)
 {
 	Eigen::VectorXi component;
@@ -1057,4 +1075,5 @@ bool MESHIO::topoFillHole(Mesh &mesh)
 	topological_hole_fill(F, bnd, all_bnds, F_filled, V_filled);
 	F = F_filled;
 	mesh.Masks.resize(0, 0);
+	return true;
 }

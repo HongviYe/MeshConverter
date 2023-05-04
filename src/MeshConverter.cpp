@@ -30,6 +30,7 @@ int main(int argc, char **argv)
 	bool removebox = false;
 	bool bremesh = false;
 	bool fillhole = false;
+	bool normalize = false;
 	double DeleteDulPoint = -1;
 	int reparam_way = -1;
 	int shuffle_num = 1;
@@ -62,6 +63,7 @@ int main(int argc, char **argv)
 	app.add_flag("--rm_zero_area", RepairZeroAera, "Repair mesh file for the facet's area that equal to zero.");
 	app.add_flag("--rm_box", removebox, "remove the component with the biggest volume. warning, the facet id may be reoriented");
 	app.add_flag("--rm_duplicate_point", DeleteDulPoint, "Delete duplicate points; Format is : e.g. --rm_duplicate_point=1e-6.");
+	app.add_flag("--normalize", normalize, "normalize the mesh data to [0,1]");
 
 	if (resetOritationFaceid)
 		resetOritation = false;
@@ -171,7 +173,11 @@ int main(int argc, char **argv)
 		}
 	}
 
+	//********* Normalize *********
 
+	if (normalize) {
+		MESHIO::Normalize(mesh);
+	}
 
 
 	
