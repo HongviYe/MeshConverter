@@ -1,9 +1,6 @@
 ################################################################################
 include(DownloadProject)
 
-if(NOT EXTERNAL_DIR)
-    set(EXTERNAL_DIR ${CMAKE_SOURCE_DIR}/extern)
-endif()
 
 if(NOT GITHUB_REPOSITE)
     set(GITHUB_REPOSITE "github.com")
