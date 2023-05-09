@@ -38,7 +38,7 @@ endfunction()
 
 ## libigl
 function(meshorient_download_libigl)
-    meshorient_download_project(libigl
+    meshconverter_download_project(libigl
         GIT_REPOSITORY  https://github.com/libigl/libigl.git
         GIT_TAG         v2.2.0
     )
