@@ -9,6 +9,9 @@
 #include <igl/PI.h>
 #include <igl/flipped_triangles.h>
 #include <igl/topological_hole_fill.h>
+#include <igl/upsample.h>
+#include <igl/list_to_matrix.h>
+#include <igl/writeSTL.h>
 
 
 #include <set>
@@ -167,6 +170,7 @@ bool MESHIO::createBox(std::vector<double> create_box, Mesh &mesh)
 		base_t += 12;
 		base_c += 1;
 	}
+
 	return true;
 	
 }
@@ -313,57 +317,19 @@ bool MESHIO::addBox(vector<double> boxVec, Mesh &mesh)
 	double midy = tmpy[tmpid];
 	double midz = tmpz[tmpid];
 
+	double maxlength = std::max((tmpx.back() - tmpx.front()) / 2, (tmpy.back() - tmpy.front()) / 2);
+	maxlength = std::max(maxlength, (tmpz.back() - tmpz.front()) / 2);
+	double lengthx = maxlength * boxVec[0];
+	double lengthy = maxlength * boxVec[1];
+	double lengthz = maxlength * boxVec[2];
+
 	std::cout << midx << " " << midy << " " << midz << '\n';
 	std::cout << tmpx[tmpx.size() - 1] - tmpx[0] << " " << tmpy[tmpy.size() - 1] - tmpy[0] << " " << \
 		tmpz[tmpz.size() - 1] - tmpz[0] << '\n';
 
 	tmpx.clear(); tmpy.clear(); tmpz.clear();
+	Mesh box_mesh;
 
-
-	Eigen::MatrixXd tmpV;
-	tmpV.resize(V.rows() + 8, V.cols());
-	for (int i = 0; i < V.rows(); i++)
-		for (int j = 0; j < V.cols(); j++)
-			tmpV(i, j) = V(i, j);
-
-	Eigen::MatrixXi tmpT;
-	tmpT.resize(T.rows() + 12, T.cols());
-	for (int i = 0; i < T.rows(); i++)
-		for (int j = 0; j < T.cols(); j++)
-			tmpT(i, j) = T(i, j);
-
-	Eigen::MatrixXi tmpM;
-	tmpM.resize(M.rows() + 12, M.cols());
-	for (int i = 0; i < tmpM.cols(); i++)
-		tmpM(i, 0) = M(i, 0);
-
-
-	int V_index = V.rows();
-	for (double k = hight / 2; k > -hight; k -= hight) // up and down
-	{
-		for (double j = width / 2; j > -width; j -= width) // left and right
-		{
-			for (double i = len / 2; i > -len; i -= len) // forward and back
-			{
-				tmpV(V_index, 0) = midx + i;
-				tmpV(V_index, 1) = midy + j;
-				tmpV(V_index, 2) = midz + k;
-				V_index++;
-			}
-		}
-	}
-
-
-	/***************************
-	 *    4 _________2
-	 *     /|        /|
-	 *   3/_|______1/ |
-	 *    | |8_____|__|6
-	 *    | /      | /
-	 *  7 |/_______|/5
-	 ****************************/
-
-	V_index = V.rows() - 1;
 	vector<int> boxTri = {
 			1, 4, 2, // up
 			1, 3, 4, // up
@@ -379,18 +345,37 @@ bool MESHIO::addBox(vector<double> boxVec, Mesh &mesh)
 			5, 2, 6  // right
 	};
 
-	for (int i = T.rows(), j = 0; i < T.rows() + 12; i++, j += 3) {
-		tmpT(i, 0) = V_index + boxTri[j + 0];
-		tmpT(i, 1) = V_index + boxTri[j + 1];
-		tmpT(i, 2) = V_index + boxTri[j + 2];
-		tmpM(i, 0) = M(T.rows() - 1, 0) + 1;
+	box_mesh.Topo.resize(12, 3);
+	for (int i=0;i<12;i++)
+		for(int k=0;k<3;k++)
+			box_mesh.Topo(i,k)= boxTri[3*(i)+k]-1;
+	box_mesh.Vertex.resize(8, 3);
+	int V_index = 0;
+	for (double i = lengthx; i > -2*lengthx; i -= 2* lengthx) // up and down
+	{
+		for (double j = lengthy; j > -2 * lengthy; j -= 2 * lengthy) // left and right
+		{
+			for (double k = lengthz; k > -2 * lengthz; k -= 2 * lengthz) // forward and back
+			{
+				box_mesh.Vertex(V_index, 0) = midx + i;
+				box_mesh.Vertex(V_index, 1) = midy + j;
+				box_mesh.Vertex(V_index, 2) = midz + k;
+				V_index++;
+			}
+		}
 	}
+	Mesh refine_box_mesh;
+	
+	igl::upsample(box_mesh.Vertex, box_mesh.Topo, refine_box_mesh.Vertex, refine_box_mesh.Topo, 4);
+	//igl::writeSTL("test.stl", refine_box_mesh.Vertex, refine_box_mesh.Topo);
 
+	int num_vertex = mesh.Vertex.rows();
+	Eigen::MatrixXd init_V = mesh.Vertex;
+	Eigen::MatrixXi init_F = mesh.Topo;
+	igl::cat(1, init_V,refine_box_mesh.Vertex, mesh.Vertex);
+	Eigen::MatrixXi offset_topo = refine_box_mesh.Topo.array() + num_vertex;
+	igl::cat(1, init_F, offset_topo, mesh.Topo);
 
-	V.resize(tmpV.rows(), tmpV.cols());
-	T.resize(tmpT.rows(), tmpT.cols());
-	V = tmpV;
-	T = tmpT;
 
 	std::cout << "Boxed\n";
 

@@ -38,7 +38,7 @@ int main(int argc, char **argv)
 	vector<double> rotateVec;
 	vector<double> boxVec;
 	vector<double> createbox;
-	app.add_option("-b", boxVec, "input bounding box. Format is (length, width, hight)");
+	app.add_option("-b", boxVec, "input bounding box. Format is (length ratio, width ratio, hight ratio), 5 is recommand");
 	app.add_option("-r", rotateVec, "input rotate param. Format is (start_x, start_y, start_z, end_x, end_y, end_z, angle) or (end_x, end_y, end_z, angle). angle value scale is (0, 2).");
 	app.add_option("-i", input_filenames, "input filename. (string, required, supported format: vtk, mesh, pls, obj)")->required()->expected(1, 3);
 	app.add_option("-p", input_filename_ex, "input filename. (string, required)");
