@@ -510,7 +510,13 @@ int MESHIO::writePLS(std::string filename, const Mesh &mesh)
     plsfile << T.rows() << " " << V.rows() << " " << "0 0 0 0\n";
 
 	int minmask = std::numeric_limits<int>::max();
-	for (int i = 0; i < T.rows(); i++) {
+    Eigen::MatrixXd M_dup(T.rows(),1);
+    if (M.rows() == 0) {
+        minmask = 0;
+    }
+    else
+
+	for (int i = 0; i < M.rows(); i++) {
 		minmask = min(M(i, 0), minmask);
 	}
 	
@@ -523,7 +529,7 @@ int MESHIO::writePLS(std::string filename, const Mesh &mesh)
 
 	for (int i = 0; i < T.rows(); i++) {
 		plsfile << i + 1 << " " << T(i, 0) + 1 << " " << T(i, 1) + 1 << " " << T(i, 2) + 1;
-		if (M.rows() && M.cols())
+		if (M.rows()>=T.rows() && M.cols()>=1)
 			plsfile << " " << M(i, 0);
 		else
 			plsfile << " " << 1;

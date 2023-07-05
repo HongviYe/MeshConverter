@@ -366,7 +366,14 @@ bool MESHIO::addBox(vector<double> boxVec, Mesh &mesh)
 	}
 	Mesh refine_box_mesh;
 	
-	igl::upsample(box_mesh.Vertex, box_mesh.Topo, refine_box_mesh.Vertex, refine_box_mesh.Topo, 4);
+	int refine_time = 4;
+	if (boxVec.size() >= 3) {
+		refine_time = int(boxVec[3]);
+		if (refine_time <= 0 || refine_time >= 10)
+			refine_time = 4;
+	}
+	
+	igl::upsample(box_mesh.Vertex, box_mesh.Topo, refine_box_mesh.Vertex, refine_box_mesh.Topo, refine_time);
 	//igl::writeSTL("test.stl", refine_box_mesh.Vertex, refine_box_mesh.Topo);
 
 	int num_vertex = mesh.Vertex.rows();
@@ -580,6 +587,7 @@ bool MESHIO::resetOrientation(Mesh &mesh, bool reset_mask) {
 		}
 	}
 	if (reset_mask) {
+		mesh.Masks.resize(mesh.Topo.rows(), mesh.Masks.cols());
 			for (int i = 0; i < mesh.Topo.rows(); i++) {
 				mesh.Masks(i,0) = block_mark[i];
 			}
