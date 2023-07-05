@@ -57,5 +57,20 @@ include_directories(${EIGEN_BASE})
 include_directories(${IGL_BASE})
 include_directories(./src/MeshOrient)
 add_executable(MeshConverter ${SOURCES})
-
 target_link_libraries(MeshConverter MeshOrient)
+
+set(target_bin MeshConverter)
+get_directory_property(hasParent PARENT_DIRECTORY)
+if(hasParent)
+set(bin_dest ${hasParent}/bin)
+install(TARGETS ${target_bin} DESTINATION "${bin_dest}")
+endif() 
+
+# try to install to a target 
+set(target_bin MeshConverter)
+get_directory_property(hasParent PARENT_DIRECTORY)
+if(hasParent)
+set(bin_dest ${hasParent}/bin)
+message("the include path =${include_dest}")
+install(TARGETS ${target_bin} DESTINATION "${bin_dest}")
+endif() 
