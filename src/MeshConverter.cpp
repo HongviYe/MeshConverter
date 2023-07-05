@@ -11,6 +11,7 @@ using namespace std;
 int main(int argc, char **argv)
 {
 	CLI::App app{"MeshConveter"};
+	std::cout << "Program version: 2023.07.05" << std::endl;
 	vector<string> input_filenames;
 	string input_filename_ex;
 	bool exportMESH = false;
