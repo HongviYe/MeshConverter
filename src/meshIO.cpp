@@ -319,7 +319,7 @@ int MESHIO::writeEpsVTK(std::string filename, const Mesh &mesh, int& cou,  std::
 	for(int i = 0; i < V.rows(); i++)
 		f << cellType << std::endl;
 
-	f << "CELL_DATA " << V.rows() << std::endl;
+	f << "POINT_DATA " << V.rows() << std::endl;
 	f << "SCALARS local_epsilon double 1" << std::endl;
 	f << "LOOKUP_TABLE default" << std::endl;
 
@@ -456,7 +456,10 @@ int MESHIO::writeMESH(std::string filename, const Mesh &mesh) {
     for(int i = 0; i < T.rows(); i++) {
         for(int j = 0; j < T.cols(); j++)
             f << T(i, j) + 1 << " ";
-        f << i + 1 << std::endl;
+        if(mesh.Masks.rows() == T.rows())
+            f << mesh.Masks(i, 0) << std::endl;
+        else
+            f << 0 << std::endl;
     }
     f.close();
     return 1;
