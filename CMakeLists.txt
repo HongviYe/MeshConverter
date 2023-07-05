@@ -36,9 +36,8 @@ IF(MSVC)
  add_compile_options(-bigobj)
 endif()
 
-add_subdirectory(src/MeshOrient)
 
-
+get_directory_property(hasParent PARENT_DIRECTORY)
 set(SOURCES
     src/meshIO.cpp
     src/meshAlgorithm.cpp
@@ -51,26 +50,25 @@ set(SOURCES
     src/Halfedge/AABB_Tree.cpp
     
     )
+if(hasParent)
+set(EXTERNAL_DIR ${hasParent}/third_party)
+set(EIGEN_BASE ${EXTERNAL_DIR}/eigen)
+set(IGL_BASE ${EXTERNAL_DIR}/libigl)
+message("the include path =${EXTERNAL_DIR}/eigen")
+endif()
+
+include_directories(${EXTERNAL_DIR}/cli11)
 include_directories(./src)
-include_directories(./extern/cli11)
 include_directories(${EIGEN_BASE})
-include_directories(${IGL_BASE})
+include_directories(${IGL_BASE}/include)
 include_directories(./src/MeshOrient)
 add_executable(MeshConverter ${SOURCES})
 target_link_libraries(MeshConverter MeshOrient)
 
-set(target_bin MeshConverter)
-get_directory_property(hasParent PARENT_DIRECTORY)
-if(hasParent)
-set(bin_dest ${hasParent}/bin)
-install(TARGETS ${target_bin} DESTINATION "${bin_dest}")
-endif() 
-
 # try to install to a target 
 set(target_bin MeshConverter)
-get_directory_property(hasParent PARENT_DIRECTORY)
 if(hasParent)
 set(bin_dest ${hasParent}/bin)
-message("the include path =${include_dest}")
+add_subdirectory(src/MeshOrient)
 install(TARGETS ${target_bin} DESTINATION "${bin_dest}")
 endif() 
