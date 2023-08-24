@@ -32,6 +32,7 @@ int main(int argc, char **argv)
 	bool bremesh = false;
 	bool fillhole = false;
 	bool normalize = false;
+	bool remove_hanging_face = false;
 	double DeleteDulPoint = -1;
 	int reparam_way = -1;
 	int shuffle_num = 1;
@@ -65,6 +66,8 @@ int main(int argc, char **argv)
 	app.add_flag("--rm_box", removebox, "remove the component with the biggest volume. warning, the facet id may be reoriented");
 	app.add_flag("--rm_duplicate_point", DeleteDulPoint, "Delete duplicate points; Format is : e.g. --rm_duplicate_point=1e-6.");
 	app.add_flag("--normalize", normalize, "normalize the mesh data to [0,1]");
+	app.add_flag("--rm_hanging", remove_hanging_face, "remove the hanging face.");
+
 
 	if (resetOritationFaceid)
 		resetOritation = false;
@@ -235,6 +238,10 @@ int main(int argc, char **argv)
 	if(bremesh)
 	{
 		MESHIO::remesh(mesh);
+	}
+
+	if (remove_hanging_face) {
+		MESHIO::removeHangingFace(mesh);
 	}
 	
 	

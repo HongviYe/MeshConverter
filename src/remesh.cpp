@@ -1,6 +1,11 @@
 
 #include "remesh.h"
 
+#include <vector>
+#include <array>
+#include <queue>
+#include <set>
+
 using namespace MESHIO::polymesh;
 
 
@@ -307,6 +312,66 @@ double MESHIO::calculateTargetEdgeLength(PolyMesh *mesh)
   target_edge_length /= mesh->numEdges();
   return target_edge_length;
 }
+
+
+void MESHIO::removeHangingFace(Mesh& mesh) {
+    std::cout << "trying to remove the hanging face" << std::endl;
+    std::vector<std::vector<int>> point_to_triangle(mesh.Vertex.rows());
+    std::vector<std::array<std::set<int>, 3>> triangle_neighbour(mesh.Topo.rows());
+    for (int i = 0; i < mesh.Topo.rows(); i++) {
+        for (int k = 0; k < 3; k++) {
+            point_to_triangle[mesh.Topo(i, k)].push_back(i);
+        }
+    }
+    for (int i = 0; i < mesh.Topo.rows(); i++) {
+        for (int k = 0; k < 3; k++) {
+            for (int j = 0; j < point_to_triangle[mesh.Topo(i, k)].size(); j++) {
+                for (int l = 0; l < 3; l++) {
+                    if (mesh.Topo(point_to_triangle[mesh.Topo(i, k)][j], l) == mesh.Topo(i, (k + 1) % 3)) {
+                        triangle_neighbour[i][(k + 2) % 3].insert(point_to_triangle[mesh.Topo(i, k)][j]);
+                    }
+                }
+            }
+            triangle_neighbour[i][(k + 2) % 3].erase(i);
+        }
+    }
+    std::queue<int> Q;
+    for (int i = 0; i < mesh.Topo.rows(); i++) {
+        for (int j = 0; j < 3; j++) {
+            if (triangle_neighbour[i][j].size() == 0) {
+                Q.push(i);
+            }
+        }
+    }
+    if (Q.empty())
+        return;
+    std::set<int> removed_tri;
+    while (!Q.empty()) {
+        int f = Q.front();
+        removed_tri.insert(f);
+        std::cout << "removing " << f << std::endl;
+        Q.pop();
+        for (int j = 0; j < 3; j++) {
+            for (auto k : triangle_neighbour[f][j]) {
+                for (int l = 0; l < 3; l++) {
+                    triangle_neighbour[k][l].erase(f);
+                    if (triangle_neighbour[k][l].empty())
+                        Q.push(k);
+                }
+            }
+        }
+    }
+
+    Eigen::MatrixXi topos(mesh.Topo.rows() - removed_tri.size(), 3);
+    int count = 0;
+    for (int i = 0; i < mesh.Topo.rows(); i++) {
+        if (removed_tri.find(i) == removed_tri.end()) {
+            topos.row(count++) = mesh.Topo.row(i);
+        }
+    }
+    mesh.Topo = topos;
+}
+
 
 void MESHIO::remesh(Mesh& mesh){
   polymesh::PolyMesh half_mesh;
