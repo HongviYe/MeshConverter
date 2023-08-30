@@ -63,6 +63,7 @@ include_directories(${EIGEN_BASE})
 include_directories(${IGL_BASE}/include)
 include_directories(./src/MeshOrient)
 add_executable(MeshConverter ${SOURCES})
+add_subdirectory(src/MeshOrient)
 target_link_libraries(MeshConverter MeshOrient)
 
 # try to install to a target 
