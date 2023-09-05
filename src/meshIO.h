@@ -23,6 +23,7 @@ namespace MESHIO{
 
 int readVTK(std::string filename, Mesh &mesh, std::string mark_pattern = "");
 int readEPS(std::string filename, int& cou, std::map<int, double>& mpd, std::map<int, std::vector<int>>& mpi);
+int readVTK_newer_version(std::string filename, Mesh& mesh, std::string mark_pattern);
 int readMESH(std::string filename, Mesh &mesh);
 int readPLS(std::string filename, Mesh &mesh);
 int readPLY(std::string filename, Mesh &mesh); //TODO

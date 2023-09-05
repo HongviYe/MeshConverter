@@ -8,9 +8,9 @@
 
 using namespace std;
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
-	CLI::App app{"MeshConveter"};
+	CLI::App app{ "MeshConveter" };
 	std::cout << "Program version: 2023.07.05" << std::endl;
 	vector<string> input_filenames;
 	string input_filename_ex;
@@ -68,7 +68,6 @@ int main(int argc, char **argv)
 	app.add_flag("--normalize", normalize, "normalize the mesh data to [0,1]");
 	app.add_flag("--rm_hanging", remove_hanging_face, "remove the hanging face.");
 
-
 	if (resetOritationFaceid)
 		resetOritation = false;
 
@@ -76,7 +75,7 @@ int main(int argc, char **argv)
 	{
 		app.parse(argc, argv);
 	}
-	catch (const CLI::ParseError &e)
+	catch (const CLI::ParseError& e)
 	{
 		return app.exit(e);
 	}
@@ -146,9 +145,8 @@ int main(int argc, char **argv)
 	if (exportEpsVTK)
 		MESHIO::readEPS(input_filename, cou, mpd, mpi);
 
-	
 	//********* Reparameter *********
-	if(reparam_way != -1)
+	if (reparam_way != -1)
 	{
 		switch (reparam_way)
 		{
@@ -183,14 +181,12 @@ int main(int argc, char **argv)
 		MESHIO::Normalize(mesh);
 	}
 
-
-	
 	//********* Rotate *********
 	if (!rotateVec.empty())
 		MESHIO::rotatePoint(rotateVec, mesh);
 
 	//********* Shuffle **********
-	if(shuffleMark)
+	if (shuffleMark)
 	{
 		std::cout << "shuffle surface start.\n";
 		MESHIO::shuffleSurfaceid(shuffle_num, mesh);
@@ -208,8 +204,6 @@ int main(int argc, char **argv)
 		MESHIO::resetOrientation(mesh, true);
 	if (checkOritation)
 		MESHIO::checkOrientation(mesh);
-
-
 
 	//********* modify facet orient ******
 	if (reverseFacetOrient)
@@ -229,13 +223,13 @@ int main(int argc, char **argv)
 		MESHIO::removeDulplicatePoint(mesh.Vertex, mesh.Topo, DeleteDulPoint);
 	}
 
-		//********* HoleFill *********
-	if(fillhole){
+	//********* HoleFill *********
+	if (fillhole) {
 		MESHIO::topoFillHole(mesh);
 	}
 
 	//********* Remesh *********
-	if(bremesh)
+	if (bremesh)
 	{
 		MESHIO::remesh(mesh);
 	}
@@ -243,9 +237,6 @@ int main(int argc, char **argv)
 	if (remove_hanging_face) {
 		MESHIO::removeHangingFace(mesh);
 	}
-	
-	
-
 
 	//********* Create some box ********
 	if (createbox.size() != 0)
@@ -263,7 +254,6 @@ int main(int argc, char **argv)
 		MESHIO::removeBox(mesh);
 	}
 	//********* export ********
-
 
 	if (exportVTK)
 	{
@@ -300,7 +290,7 @@ int main(int argc, char **argv)
 		string output_filename = input_filename.substr(0, input_dotpos) + suffix + ".o.obj";
 		MESHIO::writeOBJ(output_filename, mesh);
 	}
-	if(exportStlIn)
+	if (exportStlIn)
 	{
 		string output_filename = input_filename.substr(0, input_dotpos) + suffix + "_stl.in";
 		MESHIO::writeStlIn(output_filename, mesh);
