@@ -161,7 +161,9 @@ int MESHIO::readVTK(std::string filename, Mesh& mesh, std::string mark_pattern) 
             for(int i = 0; i < nPoints; i++) {
                 vtk_file.getline(buffer, BUFFER_LENGTH);
                 words = seperate_string(std::string(buffer));
-                V.row(i) << stod(words[0]), stod(words[1]), stod(words[2]);
+                for(int j = 0; j < 3; ++j){
+                    V(i, j) = stod(words[j]);
+                }
             }
         }
         if(line.find(vtk_type_str) != std::string::npos) {
@@ -174,6 +176,9 @@ int MESHIO::readVTK(std::string filename, Mesh& mesh, std::string mark_pattern) 
                 for(int j = 0; j < stoi(words[0]); j++) 
                     T(i, j) = stoi(words[j + 1]);
             }
+            M.resize(nFacets, 1);
+			for (int i = 0; i < nFacets; i++)
+				M(i, 0) = 0;
         }
         if(line.find("CELL_DATA ") != std::string::npos) {
             std::vector<std::string> words = seperate_string(line);
@@ -186,15 +191,11 @@ int MESHIO::readVTK(std::string filename, Mesh& mesh, std::string mark_pattern) 
             std::string data_type = seperate_string(std::string(buffer))[1];
             if(data_type != mark_pattern) 
                 continue;
-            M.resize(nFacets, 1);
-			for (int i = 0; i < nFacets; i++)
-				M(i, 0) = 0;
             vtk_file.getline(buffer, BUFFER_LENGTH);
             for(int i = 0; i < nFacets; i++) {
                 vtk_file.getline(buffer, BUFFER_LENGTH);
 				int surface_id=stoi(std::string(buffer));
-				M.row(i) << surface_id;
-					
+				M(i, 0) = surface_id;
             }
         }
     }
