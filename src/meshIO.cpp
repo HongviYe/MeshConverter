@@ -187,15 +187,32 @@ int MESHIO::readVTK(std::string filename, Mesh& mesh, std::string mark_pattern) 
                 std::cout << "Ignore CELL_DATA" << std::endl;
                 return 0;
             }
-            vtk_file.getline(buffer, BUFFER_LENGTH);
-            std::string data_type = seperate_string(std::string(buffer))[1];
-            if(data_type != mark_pattern) 
-                continue;
-            vtk_file.getline(buffer, BUFFER_LENGTH);
-            for(int i = 0; i < nFacets; i++) {
+            if (vtk_type_str == "POLYGONS ")
+            {
                 vtk_file.getline(buffer, BUFFER_LENGTH);
-				int surface_id=stoi(std::string(buffer));
-				M(i, 0) = surface_id;
+                vtk_file.getline(buffer, BUFFER_LENGTH);
+                std::string data_type = seperate_string(std::string(buffer))[0];
+                if (data_type != mark_pattern)
+                    continue;
+                for (int i = 0; i < nFacets; i++){
+                    vtk_file.getline(buffer, BUFFER_LENGTH);
+                    int surface_id = stoi(std::string(buffer));
+                    M(i, 0) = surface_id;
+                }
+            }
+            else
+            {
+                vtk_file.getline(buffer, BUFFER_LENGTH);
+                std::string data_type = seperate_string(std::string(buffer))[1];
+                if (data_type != mark_pattern)
+                    continue;
+                vtk_file.getline(buffer, BUFFER_LENGTH);
+                for (int i = 0; i < nFacets; i++)
+                {
+                    vtk_file.getline(buffer, BUFFER_LENGTH);
+                    int surface_id = stoi(std::string(buffer));
+                    M(i, 0) = surface_id;
+                }
             }
         }
     }
