@@ -13,7 +13,6 @@
 #include <igl/list_to_matrix.h>
 #include <igl/writeSTL.h>
 
-
 #include <set>
 #include <unordered_map>
 #include <cmath>
@@ -33,7 +32,7 @@ using namespace std;
  * @param T
  * @return 1/0
  */
-bool MESHIO::rotatePoint(vector<double> rotateVec, Mesh &mesh)
+bool MESHIO::rotatePoint(vector<double> rotateVec, Mesh& mesh)
 {
 	if (rotateVec.size() == 0) return 0;
 	auto& M = mesh.Masks;
@@ -88,13 +87,13 @@ bool MESHIO::rotatePoint(vector<double> rotateVec, Mesh &mesh)
 
 /**
  * @brief Create a Box object
- * 
- * @param create_box 
- * @param mesh 
- * @return true 
- * @return false 
+ *
+ * @param create_box
+ * @param mesh
+ * @return true
+ * @return false
  */
-bool MESHIO::createBox(std::vector<double> create_box, Mesh &mesh)
+bool MESHIO::createBox(std::vector<double> create_box, Mesh& mesh)
 {
 	/***************************
 	 *          | Z
@@ -127,7 +126,7 @@ bool MESHIO::createBox(std::vector<double> create_box, Mesh &mesh)
 			5, 1, 2, // right
 			5, 2, 6  // right
 	};
-	
+
 	int box_num = create_box.size() / 6;
 
 	mesh.Vertex.resize(box_num * 8, 3);
@@ -142,29 +141,29 @@ bool MESHIO::createBox(std::vector<double> create_box, Mesh &mesh)
 	int base_t = 0;
 	int base_c = 0;
 
-	for(int i = 0; i < create_box.size(); i += 6)
+	for (int i = 0; i < create_box.size(); i += 6)
 	{
 		Eigen::Vector3d minn, maxx;
 		minn = Eigen::Vector3d(create_box[i + 0], create_box[i + 1], create_box[i + 2]).cwiseMin(Eigen::Vector3d(create_box[i + 3], create_box[i + 4], create_box[i + 5]));
 		maxx = Eigen::Vector3d(create_box[i + 0], create_box[i + 1], create_box[i + 2]).cwiseMax(Eigen::Vector3d(create_box[i + 3], create_box[i + 4], create_box[i + 5]));
 
 		Eigen::Vector3d V_lst[8];
-		
+
 		mesh.Vertex.row(base_v + 0) = maxx;
-		mesh.Vertex.row(base_v + 1) = Eigen::Vector3d( minn.x(), maxx.y(), maxx.z() );
-		mesh.Vertex.row(base_v + 2) = Eigen::Vector3d( maxx.x(), minn.y(), maxx.z() );
-		mesh.Vertex.row(base_v + 3) = Eigen::Vector3d( minn.x(), minn.y(), maxx.z() );
-		mesh.Vertex.row(base_v + 4) = Eigen::Vector3d( maxx.x(), maxx.y(), minn.z() );
-		mesh.Vertex.row(base_v + 5) = Eigen::Vector3d( minn.x(), maxx.y(), minn.z() );
-		mesh.Vertex.row(base_v + 6) = Eigen::Vector3d( maxx.x(), minn.y(), minn.z() );
+		mesh.Vertex.row(base_v + 1) = Eigen::Vector3d(minn.x(), maxx.y(), maxx.z());
+		mesh.Vertex.row(base_v + 2) = Eigen::Vector3d(maxx.x(), minn.y(), maxx.z());
+		mesh.Vertex.row(base_v + 3) = Eigen::Vector3d(minn.x(), minn.y(), maxx.z());
+		mesh.Vertex.row(base_v + 4) = Eigen::Vector3d(maxx.x(), maxx.y(), minn.z());
+		mesh.Vertex.row(base_v + 5) = Eigen::Vector3d(minn.x(), maxx.y(), minn.z());
+		mesh.Vertex.row(base_v + 6) = Eigen::Vector3d(maxx.x(), minn.y(), minn.z());
 		mesh.Vertex.row(base_v + 7) = minn;
 
-		for(int j = 0; j < boxTri.size() / 3; j++)
+		for (int j = 0; j < boxTri.size() / 3; j++)
 		{
 			mesh.Masks(base_t + j, 0) = base_c;
-			mesh.Topo.row(base_t + j) = Eigen::Vector3i( base_v + boxTri[j * 3 + 0] - 1,
-														 base_v + boxTri[j * 3 + 1] - 1,
-														 base_v + boxTri[j * 3 + 2] - 1);
+			mesh.Topo.row(base_t + j) = Eigen::Vector3i(base_v + boxTri[j * 3 + 0] - 1,
+				base_v + boxTri[j * 3 + 1] - 1,
+				base_v + boxTri[j * 3 + 2] - 1);
 		}
 		base_v += 8;
 		base_t += 12;
@@ -172,20 +171,19 @@ bool MESHIO::createBox(std::vector<double> create_box, Mesh &mesh)
 	}
 
 	return true;
-	
 }
 
-bool MESHIO::Normalize(Mesh & mesh) {
-	Eigen::Vector3d maxC(-std::numeric_limits<double>::max(),-std::numeric_limits<double>::max(),-std::numeric_limits<double>::max());
-	Eigen::Vector3d minC=-maxC;
-	for(int j=0;j<mesh.Vertex.rows();j++)
-	for (int i = 0; i < 3; i++) {
-		maxC(i) = std::max(mesh.Vertex(j, i), maxC(i));
-		minC(i) = std::min(mesh.Vertex(j, i), minC(i));
-	}
+bool MESHIO::Normalize(Mesh& mesh) {
+	Eigen::Vector3d maxC(-std::numeric_limits<double>::max(), -std::numeric_limits<double>::max(), -std::numeric_limits<double>::max());
+	Eigen::Vector3d minC = -maxC;
+	for (int j = 0; j < mesh.Vertex.rows(); j++)
+		for (int i = 0; i < 3; i++) {
+			maxC(i) = std::max(mesh.Vertex(j, i), maxC(i));
+			minC(i) = std::min(mesh.Vertex(j, i), minC(i));
+		}
 	double scale = 0;
 	for (int i = 0; i < 3; i++) {
-		scale = std::max(scale,maxC(i)-minC(i));
+		scale = std::max(scale, maxC(i) - minC(i));
 	}
 	for (int j = 0; j < mesh.Vertex.rows(); j++)
 		for (int i = 0; i < 3; i++) {
@@ -193,7 +191,7 @@ bool MESHIO::Normalize(Mesh & mesh) {
 		}
 	return true;
 }
-bool MESHIO::removeBox(Mesh & mesh)
+bool MESHIO::removeBox(Mesh& mesh)
 {
 	Eigen::VectorXi component;
 	Eigen::MatrixXi tmp = mesh.Topo;
@@ -210,7 +208,7 @@ bool MESHIO::removeBox(Mesh & mesh)
 			Eigen::RowVector3d(0, 0, 0)));
 	}
 
-	auto maxi = std::max_element(vols.begin(), vols.end(), 
+	auto maxi = std::max_element(vols.begin(), vols.end(),
 		[](std::pair<int, double> t1, std::pair<int, double> t2) {return t1.second < t2.second; })->first;
 	std::map<int, int> index_map; // new to old
 	std::map<int, int> index_rmap; // old to new
@@ -233,12 +231,11 @@ bool MESHIO::removeBox(Mesh & mesh)
 	new_topo.resize(topo_count, 3);
 	new_vertex.resize(index_map.size(), 3);
 	for (int i = 0; i < index_map.size(); i++) {
-
 		new_vertex.row(i) = static_cast<Eigen::RowVector3d>(mesh.Vertex.row(index_map[i]));
 	}
 	topo_count = 0;
 	for (int j = 0; j < component.rows(); j++) {
-		if (component(j) != maxi) {		
+		if (component(j) != maxi) {
 			for (int k = 0; k < 3; k++) {
 				new_topo(topo_count, k) = index_rmap[mesh.Topo(j, k)];
 			}
@@ -246,13 +243,11 @@ bool MESHIO::removeBox(Mesh & mesh)
 		}
 	}
 
-
-
 	if (mesh.Masks.rows() == mesh.Vertex.rows()) {
 		for (int i = 0; i < index_map.size(); i++) {
 			mesh.Masks.row(i) = mesh.Masks.row(index_map[i]);
 		}
-		mesh.Masks.conservativeResize(mesh.Vertex.rows(),mesh.Masks.cols());
+		mesh.Masks.conservativeResize(mesh.Vertex.rows(), mesh.Masks.cols());
 	}
 	if (mesh.Masks.rows() == mesh.Topo.rows()) {
 		topo_count = 0;
@@ -265,15 +260,11 @@ bool MESHIO::removeBox(Mesh & mesh)
 		mesh.Masks.conservativeResize(mesh.Topo.rows(), mesh.Masks.cols());
 	}
 
-
-
 	mesh.Vertex = new_vertex;
 	mesh.Topo = new_topo;
-	
+
 	return true;
 }
-
-
 
 /**
  * Add bounding box.
@@ -282,7 +273,7 @@ bool MESHIO::removeBox(Mesh & mesh)
  * @param T
  * @return
  */
-bool MESHIO::addBox(vector<double> boxVec, Mesh &mesh)
+bool MESHIO::addBox(vector<double> boxVec, Mesh& mesh)
 {
 	if (boxVec.size() == 0) return 0;
 	auto& M = mesh.Masks;
@@ -292,7 +283,6 @@ bool MESHIO::addBox(vector<double> boxVec, Mesh &mesh)
 		std::cout << "the number of boxVec's param is not equal to 3." << std::endl;
 		return 0;
 	}
-
 
 	std::cout << "Boxing\n";
 
@@ -346,12 +336,12 @@ bool MESHIO::addBox(vector<double> boxVec, Mesh &mesh)
 	};
 
 	box_mesh.Topo.resize(12, 3);
-	for (int i=0;i<12;i++)
-		for(int k=0;k<3;k++)
-			box_mesh.Topo(i,k)= boxTri[3*(i)+k]-1;
+	for (int i = 0; i < 12; i++)
+		for (int k = 0; k < 3; k++)
+			box_mesh.Topo(i, k) = boxTri[3 * (i)+k] - 1;
 	box_mesh.Vertex.resize(8, 3);
 	int V_index = 0;
-	for (double i = lengthx; i > -2*lengthx; i -= 2* lengthx) // up and down
+	for (double i = lengthx; i > -2 * lengthx; i -= 2 * lengthx) // up and down
 	{
 		for (double j = lengthy; j > -2 * lengthy; j -= 2 * lengthy) // left and right
 		{
@@ -365,31 +355,30 @@ bool MESHIO::addBox(vector<double> boxVec, Mesh &mesh)
 		}
 	}
 	Mesh refine_box_mesh;
-	
+
 	int refine_time = 4;
 	if (boxVec.size() >= 3) {
 		refine_time = int(boxVec[3]);
 		if (refine_time <= 0 || refine_time >= 10)
 			refine_time = 4;
 	}
-	
+
 	igl::upsample(box_mesh.Vertex, box_mesh.Topo, refine_box_mesh.Vertex, refine_box_mesh.Topo, refine_time);
 	//igl::writeSTL("test.stl", refine_box_mesh.Vertex, refine_box_mesh.Topo);
 
 	int num_vertex = mesh.Vertex.rows();
 	Eigen::MatrixXd init_V = mesh.Vertex;
 	Eigen::MatrixXi init_F = mesh.Topo;
-	igl::cat(1, init_V,refine_box_mesh.Vertex, mesh.Vertex);
+	igl::cat(1, init_V, refine_box_mesh.Vertex, mesh.Vertex);
 	Eigen::MatrixXi offset_topo = refine_box_mesh.Topo.array() + num_vertex;
 	igl::cat(1, init_F, offset_topo, mesh.Topo);
-
 
 	std::cout << "Boxed\n";
 
 	return 1;
 }
 
-bool MESHIO::reverseOrient(Eigen::MatrixXi &T) {
+bool MESHIO::reverseOrient(Eigen::MatrixXi& T) {
 	std::cout << "Reversing\n";
 	for (int i = 0; i < T.rows(); i++)
 	{
@@ -401,7 +390,7 @@ bool MESHIO::reverseOrient(Eigen::MatrixXi &T) {
 	return 1;
 }
 
-bool MESHIO::repair(Mesh &mesh)
+bool MESHIO::repair(Mesh& mesh)
 {
 	auto& M = mesh.Masks;
 	auto& V = mesh.Vertex;
@@ -452,12 +441,12 @@ bool MESHIO::repair(Mesh &mesh)
 	}
 
 	std::sort(vec.begin(), vec.end(), [](const node& a, const node& b)
-	{
-		if (a.point.x() != b.point.x()) return a.point.x() < b.point.x();
-		if (a.point.y() != b.point.y()) return a.point.y() < b.point.y();
-		if (a.point.z() != b.point.z()) return a.point.z() < b.point.z();
-		return a.oldid < b.oldid;
-	});
+		{
+			if (a.point.x() != b.point.x()) return a.point.x() < b.point.x();
+			if (a.point.y() != b.point.y()) return a.point.y() < b.point.y();
+			if (a.point.z() != b.point.z()) return a.point.z() < b.point.z();
+			return a.oldid < b.oldid;
+		});
 
 	int curid = 0;
 	for (int i = 0; i < vec.size(); i++)
@@ -510,7 +499,6 @@ bool MESHIO::repair(Mesh &mesh)
 }
 
 void MESHIO::checkOrientation(Mesh& mesh) {
-
 	vector<vector<double>> point_list(mesh.Vertex.rows(), vector<double>(mesh.Vertex.cols(), 0));
 	vector<vector<int>> facet_list(mesh.Topo.rows(), vector<int>(mesh.Topo.cols(), 0));
 	for (int i = 0; i < mesh.Vertex.rows(); i++) {
@@ -529,11 +517,9 @@ void MESHIO::checkOrientation(Mesh& mesh) {
 	vector<int> block_mark;
 	TIGER::resetOrientation(point_list, facet_list, block_mark);
 
-
 	std::set<vector<int>> qs;
 	for (auto i : facet_list) {
-		
-		int id=	std::min_element(i.begin(), i.end())-i.begin();
+		int id = std::min_element(i.begin(), i.end()) - i.begin();
 		qs.insert(vector<int>{i[id], i[(id + 1) % 3], i[(id + 2) % 3]});
 	}
 
@@ -554,43 +540,42 @@ void MESHIO::checkOrientation(Mesh& mesh) {
 				cout << k << " ";
 			}
 			cout << endl;
-		//	break;
+			//	break;
 		}
 	}
 
-	return ;
-
+	return;
 }
-bool MESHIO::resetOrientation(Mesh &mesh, bool reset_mask) {
+bool MESHIO::resetOrientation(Mesh& mesh, bool reset_mask) {
 	vector<vector<double>> point_list(mesh.Vertex.rows(), vector<double>(mesh.Vertex.cols(), 0));
 	vector<vector<int>> facet_list(mesh.Topo.rows(), vector<int>(mesh.Topo.cols(), 0));
-	for(int i = 0; i < mesh.Vertex.rows(); i++) {
-		for(int j = 0; j < mesh.Vertex.cols(); j++) {
+	for (int i = 0; i < mesh.Vertex.rows(); i++) {
+		for (int j = 0; j < mesh.Vertex.cols(); j++) {
 			point_list[i][j] = mesh.Vertex(i, j);
 		}
 	}
-	for(int i = 0; i < mesh.Topo.rows(); i++) {
-		for(int j = 0; j < mesh.Topo.cols(); j++) {
+	for (int i = 0; i < mesh.Topo.rows(); i++) {
+		for (int j = 0; j < mesh.Topo.cols(); j++) {
 			facet_list[i][j] = mesh.Topo(i, j);
 		}
 	}
 	vector<int> block_mark;
 	TIGER::resetOrientation(point_list, facet_list, block_mark);
-	for(int i = 0; i < mesh.Vertex.rows(); i++) {
-		for(int j = 0; j < mesh.Vertex.cols(); j++) {
+	for (int i = 0; i < mesh.Vertex.rows(); i++) {
+		for (int j = 0; j < mesh.Vertex.cols(); j++) {
 			mesh.Vertex(i, j) = point_list[i][j];
 		}
 	}
-	for(int i = 0; i < mesh.Topo.rows(); i++) {
-		for(int j = 0; j < mesh.Topo.cols(); j++) {
+	for (int i = 0; i < mesh.Topo.rows(); i++) {
+		for (int j = 0; j < mesh.Topo.cols(); j++) {
 			mesh.Topo(i, j) = facet_list[i][j];
 		}
 	}
 	if (reset_mask) {
 		mesh.Masks.resize(mesh.Topo.rows(), mesh.Masks.cols());
-			for (int i = 0; i < mesh.Topo.rows(); i++) {
-				mesh.Masks(i,0) = block_mark[i];
-			}
+		for (int i = 0; i < mesh.Topo.rows(); i++) {
+			mesh.Masks(i, 0) = block_mark[i];
+		}
 	}
 	cout << "Orientation reset" << endl;
 	return 1;
@@ -604,15 +589,15 @@ bool MESHIO::resetOrientation(Mesh &mesh, bool reset_mask) {
 void eigen_sort_3d(const Eigen::MatrixXd& in_vec, Eigen::MatrixXd& out_vec, Eigen::VectorXi& ind, double eps)
 {
 	ind = Eigen::VectorXi::LinSpaced(in_vec.rows(), 0, in_vec.rows() - 1);
-	auto rule = [&in_vec, &eps](int i, int j)->bool{
-		if( fabs(in_vec(i, 0) - in_vec(j, 0)) > eps) return in_vec(i, 0) < in_vec(j, 0);
-		if( fabs(in_vec(i, 1) - in_vec(j, 1)) > eps) return in_vec(i, 1) < in_vec(j, 1);
-		if( fabs(in_vec(i, 2) - in_vec(j, 2)) > eps) return in_vec(i, 2) < in_vec(j, 2);
+	auto rule = [&in_vec, &eps](int i, int j)->bool {
+		if (fabs(in_vec(i, 0) - in_vec(j, 0)) > eps) return in_vec(i, 0) < in_vec(j, 0);
+		if (fabs(in_vec(i, 1) - in_vec(j, 1)) > eps) return in_vec(i, 1) < in_vec(j, 1);
+		if (fabs(in_vec(i, 2) - in_vec(j, 2)) > eps) return in_vec(i, 2) < in_vec(j, 2);
 		return i < j;
-	};
+		};
 	std::sort(ind.data(), ind.data() + ind.size(), rule);
 	out_vec.resize(in_vec.rows(), in_vec.cols());
-	for(int i = 0; i < in_vec.rows(); i++)
+	for (int i = 0; i < in_vec.rows(); i++)
 	{
 		out_vec.row(i) << in_vec.row(ind(i));
 	}
@@ -623,7 +608,7 @@ void eigen_sort_3d(const Eigen::MatrixXd& in_vec, Eigen::MatrixXd& out_vec, Eige
  * @param V
  * @param T
  */
-bool MESHIO::removeDulplicatePoint(Eigen::MatrixXd& V, Eigen::MatrixXi& F, double eps){
+bool MESHIO::removeDulplicatePoint(Eigen::MatrixXd& V, Eigen::MatrixXi& F, double eps) {
 	Eigen::MatrixXd V_in = V;
 	Eigen::MatrixXi F_in = F;
 	Eigen::MatrixXd V_sort;
@@ -632,13 +617,13 @@ bool MESHIO::removeDulplicatePoint(Eigen::MatrixXd& V, Eigen::MatrixXi& F, doubl
 	int cnt = 0;
 	std::unordered_map<int, int> mpid;
 	std::vector<int> new_point_lst;
-	for(int i = 0; i < V_sort.rows(); i++)
+	for (int i = 0; i < V_sort.rows(); i++)
 	{
 		while (i + 1 < V_sort.rows())
 		{
-			if( (V_sort.row(i + 1) - V_sort.row(i)).norm() < eps )
+			if ((V_sort.row(i + 1) - V_sort.row(i)).norm() < eps)
 			{
-				mpid[ ind[i] ] = cnt;
+				mpid[ind[i]] = cnt;
 				i++;
 			}
 			else break;
@@ -652,32 +637,31 @@ bool MESHIO::removeDulplicatePoint(Eigen::MatrixXd& V, Eigen::MatrixXi& F, doubl
 	V.resize(new_point_lst.size(), 3);
 	F.resize(F_in.rows(), 3);
 
-	for(int i = 0; i < new_point_lst.size(); i++)
+	for (int i = 0; i < new_point_lst.size(); i++)
 	{
 		V.row(i) = V_in.row(new_point_lst[i]);
 	}
 
-	for(int i = 0; i < F_in.rows(); i++)
+	for (int i = 0; i < F_in.rows(); i++)
 	{
-		for(int j = 0; j < 3; j++)
+		for (int j = 0; j < 3; j++)
 		{
-			F(i, j) = mpid[ F_in(i, j) ];
+			F(i, j) = mpid[F_in(i, j)];
 		}
 	}
 
 	std::cout << "Remove " << V_in.rows() - V.rows() << " duplicate points\n";
 	return true;
-
 }
 
 void MESHIO::dfs_get_loop2(int cur, int pre, std::vector<bool>& vis, std::vector<std::vector<int>>& G, std::vector<int>& path, std::vector<std::vector<int>>& loop_lst)
 {
-	if(vis[cur])
+	if (vis[cur])
 	{
 		std::vector<int> tmp;
-		for(int i = path.size() - 2; i >= 0; i--)
+		for (int i = path.size() - 2; i >= 0; i--)
 		{
-			if(path[i] != cur)
+			if (path[i] != cur)
 			{
 				tmp.push_back(path[i]);
 			}
@@ -688,19 +672,18 @@ void MESHIO::dfs_get_loop2(int cur, int pre, std::vector<bool>& vis, std::vector
 			}
 		}
 		loop_lst.push_back(tmp);
-		return ;
+		return;
 	}
 
 	vis[cur] = 1;
-	for(int i = 0; i < G[cur].size(); i++)
+	for (int i = 0; i < G[cur].size(); i++)
 	{
-		if(G[cur][i] == pre) continue;
+		if (G[cur][i] == pre) continue;
 		path.push_back(G[cur][i]);
 		dfs_get_loop2(G[cur][i], cur, vis, G, path, loop_lst);
 		path.pop_back();
 	}
 	vis[cur] = 0;
-
 }
 
 void MESHIO::boundary_loop_by_dfs2(Eigen::MatrixXd& V, Eigen::MatrixXi& F, Eigen::VectorXi& bnd)
@@ -714,41 +697,41 @@ void MESHIO::boundary_loop_by_dfs2(Eigen::MatrixXd& V, Eigen::MatrixXi& F, Eigen
 	F_tmp = F;
 
 	bool b_dulplicated_point = false;
-	if(b_dulplicated_point)
+	if (b_dulplicated_point)
 	{
-		for(int i = 0; i < V.rows(); i++)
+		for (int i = 0; i < V.rows(); i++)
 		{
-			for(int j = i + 1; j < V.rows(); j++)
-			if( (V.row(i) - V.row(j)).norm() < eps )
-			{
-				std::cout << "Warning : boundary loop have dulplicate point.\n";
-				break;
-			}
+			for (int j = i + 1; j < V.rows(); j++)
+				if ((V.row(i) - V.row(j)).norm() < eps)
+				{
+					std::cout << "Warning : boundary loop have dulplicate point.\n";
+					break;
+				}
 		}
 	}
 
 	// To find all boundary for building graph.
 	std::vector<std::vector<int>> G(V.rows(), std::vector<int>());
-	std::map<std::array<int, 2> , int> mp;
+	std::map<std::array<int, 2>, int> mp;
 	std::vector<bool> vis(V.rows(), 0);
 	std::vector<std::vector<int>> loop_lst;
 	std::vector<int> path;
 	std::set<int> num_p_set;
 
-	for(int i = 0; i < F.rows(); i++)
+	for (int i = 0; i < F.rows(); i++)
 	{
-		for(int j = 0; j < 3; j++)
+		for (int j = 0; j < 3; j++)
 		{
 			int a = F(i, j);
-			int b = F(i, (j + 1) % 3 );
-			std::array<int, 2> tmp = {std::min(a, b), std::max(a, b)};
+			int b = F(i, (j + 1) % 3);
+			std::array<int, 2> tmp = { std::min(a, b), std::max(a, b) };
 			mp[tmp]++;
 		}
 	}
 
-	for(auto iter = mp.begin(); iter != mp.end(); iter++)
+	for (auto iter = mp.begin(); iter != mp.end(); iter++)
 	{
-		if( iter->second == 1 )
+		if (iter->second == 1)
 		{
 			G[iter->first[0]].push_back(iter->first[1]);
 			G[iter->first[1]].push_back(iter->first[0]);
@@ -762,192 +745,187 @@ void MESHIO::boundary_loop_by_dfs2(Eigen::MatrixXd& V, Eigen::MatrixXi& F, Eigen
 	path.push_back(start);
 	MESHIO::dfs_get_loop2(start, -1, vis, G, path, loop_lst);
 
-	for(int i = 0; i < loop_lst.size(); i++)
+	for (int i = 0; i < loop_lst.size(); i++)
 	{
 		std::cout << "#BK The " << i << "th loop number is : " << loop_lst[i].size() << '\n';
 	}
 
-	sort(loop_lst.begin(), loop_lst.end(), [&V](const std::vector<int>& a, const std::vector<int>& b){
+	sort(loop_lst.begin(), loop_lst.end(), [&V](const std::vector<int>& a, const std::vector<int>& b) {
 		double len_a = 0.0;
 		double len_b = 0.0;
 
-		for(int i = 0; i < a.size(); i++)
+		for (int i = 0; i < a.size(); i++)
 		{
 			len_a += (V.row(i) - V.row((i + 1) % a.size())).norm();
 		}
 
-		for(int i = 0; i < b.size(); i++)
+		for (int i = 0; i < b.size(); i++)
 		{
 			len_b += (V.row(i) - V.row((i + 1) % b.size())).norm();
 		}
-		
-		return len_a > len_b;
-	});	
 
+		return len_a > len_b;
+		});
 
 	int s = loop_lst[0][0];
 	int e = loop_lst[0][1];
 	int ok = 0;
-	for(int i = 0; i < F.rows(); i++)
+	for (int i = 0; i < F.rows(); i++)
 	{
-		for(int j = 0; j < 3; j++)
+		for (int j = 0; j < 3; j++)
 		{
 			int a = F(i, j);
-			int b = F(i, (j + 1) % 3 );
-			if(a == s && b == e)
+			int b = F(i, (j + 1) % 3);
+			if (a == s && b == e)
 			{
 				ok = 1;
 			}
 		}
-		if(ok) break;
+		if (ok) break;
 	}
 
-	if(!ok)
+	if (!ok)
 	{
 		std::reverse(loop_lst[0].begin(), loop_lst[0].end());
 	}
 
 	bnd.resize(loop_lst[0].size(), 1);
-	for(int i = 0; i < loop_lst[0].size(); i++)
+	for (int i = 0; i < loop_lst[0].size(); i++)
 	{
 		bnd(i) = loop_lst[0][i];
 	}
-
 }
 
-bool MESHIO::buildTuttleParameter( Eigen::MatrixXd& V_3d, Eigen::MatrixXi& T_3d, Eigen::MatrixXd& V_uv )
+bool MESHIO::buildTuttleParameter(Eigen::MatrixXd& V_3d, Eigen::MatrixXi& T_3d, Eigen::MatrixXd& V_uv)
 {
 	Eigen::MatrixXi C;
-  Eigen::VectorXi bnd;
+	Eigen::VectorXi bnd;
 
 	igl::bfs_orient(T_3d, T_3d, C);
 
+	// remove duplicate point
+	double minn_size = std::numeric_limits<double>::max();
 
-  // remove duplicate point
-  double minn_size = std::numeric_limits<double>::max();
+	for (int i = 0; i < T_3d.rows(); i++)
+	{
+		for (int j = 0; j < 3; j++)
+		{
+			int a = T_3d(i, j);
+			int b = T_3d(i, (j + 1) % 3);
+			minn_size = std::min(minn_size, (V_3d.row(a) - V_3d.row(b)).norm());
+		}
+	}
+	minn_size = sqrt(minn_size);
+	Eigen::MatrixXd tmpV = V_3d;
+	Eigen::MatrixXi tmpT = T_3d;
+	Eigen::MatrixXi SVI, SVJ;
+	igl::remove_duplicate_vertices(tmpV, tmpT, minn_size / 1000.0, V_3d, SVI, SVJ, T_3d);
 
-  for(int i = 0; i < T_3d.rows(); i++)
-  {
-    for(int j = 0; j < 3; j++)
-    {
-      int a = T_3d(i, j);
-      int b = T_3d(i, (j + 1) % 3);
-      minn_size = std::min(minn_size, (V_3d.row(a) - V_3d.row(b)).norm() );
-    }
-  }
-  minn_size = sqrt(minn_size);
-  Eigen::MatrixXd tmpV = V_3d;
-  Eigen::MatrixXi tmpT = T_3d;
-  Eigen::MatrixXi SVI, SVJ;
-  igl::remove_duplicate_vertices(tmpV, tmpT, minn_size / 1000.0, V_3d, SVI, SVJ, T_3d);
+	// removeDulplicatePoint(V_3d, T_3d, minn_size / 1000.0);
+	int V_N = V_3d.rows();
 
-  // removeDulplicatePoint(V_3d, T_3d, minn_size / 1000.0);
-  int V_N = V_3d.rows();
+	boundary_loop_by_dfs2(V_3d, T_3d, bnd); // mine
 
-  boundary_loop_by_dfs2(V_3d, T_3d, bnd); // mine
-    
-  // Map the boundary to a circle, preserving edge proportions
-  Eigen::MatrixXd bnd_uv;
-  igl::map_vertices_to_circle(V_3d, bnd, bnd_uv);
+	// Map the boundary to a circle, preserving edge proportions
+	Eigen::MatrixXd bnd_uv;
+	igl::map_vertices_to_circle(V_3d, bnd, bnd_uv);
 
+	// build adj relation
+	std::vector<std::vector<int>> adj(V_N);
+	for (int i = 0; i < T_3d.rows(); i++)
+	{
+		for (int j = 0; j < 3; j++)
+		{
+			int a = T_3d(i, j);
+			int b = T_3d(i, (j + 1) % 3);
+			adj[a].push_back(b);
+			adj[b].push_back(a);
+		}
+	}
 
-  // build adj relation
-  std::vector<std::vector<int>> adj(V_N);
-  for(int i = 0; i < T_3d.rows(); i++)
-  {
-    for(int j = 0; j < 3; j++)
-    {
-      int a = T_3d(i, j);
-      int b = T_3d(i, (j + 1) % 3);
-      adj[a].push_back(b);
-      adj[b].push_back(a);
-    }
-  }
-
-  typedef Eigen::Triplet<double> T;
+	typedef Eigen::Triplet<double> T;
 	typedef Eigen::SparseMatrix<double> SMatrix;
 
 	std::vector<T> tripletlist;
 	Eigen::VectorXd bu = Eigen::VectorXd::Zero(V_N);
 	Eigen::VectorXd bv = Eigen::VectorXd::Zero(V_N);
 
-  std::unordered_map<int, bool> is_boundary;
-  std::unordered_map<int, Eigen::Vector2d> mp_bnd;
-  for(int i = 0; i < bnd.rows(); i++)
-  {
-    is_boundary[bnd(i, 0)] = 1;
-    mp_bnd[bnd(i, 0)] = bnd_uv.row(i);
-  }
+	std::unordered_map<int, bool> is_boundary;
+	std::unordered_map<int, Eigen::Vector2d> mp_bnd;
+	for (int i = 0; i < bnd.rows(); i++)
+	{
+		is_boundary[bnd(i, 0)] = 1;
+		mp_bnd[bnd(i, 0)] = bnd_uv.row(i);
+	}
 
-  for(int i = 0; i < V_N; ++i)
-  {
-    if(is_boundary[i])
-    {
-      tripletlist.emplace_back(i, i, 1);
-      bu(i) = mp_bnd[i].x();
-      bv(i) = mp_bnd[i].y();
-    }
-    else{
-      for(int j = 0; j < adj[i].size(); j++)
-      {
-        tripletlist.emplace_back(i, adj[i][j], -1);
-      }
-      tripletlist.emplace_back(i, i, adj[i].size());
-    }
-  }
+	for (int i = 0; i < V_N; ++i)
+	{
+		if (is_boundary[i])
+		{
+			tripletlist.emplace_back(i, i, 1);
+			bu(i) = mp_bnd[i].x();
+			bv(i) = mp_bnd[i].y();
+		}
+		else {
+			for (int j = 0; j < adj[i].size(); j++)
+			{
+				tripletlist.emplace_back(i, adj[i][j], -1);
+			}
+			tripletlist.emplace_back(i, i, adj[i].size());
+		}
+	}
 
-  SMatrix coff(V_N, V_N);
-  coff.setFromTriplets(tripletlist.begin(), tripletlist.end());
-  Eigen::SparseLU<SMatrix> solver;
-  solver.compute(coff);
+	SMatrix coff(V_N, V_N);
+	coff.setFromTriplets(tripletlist.begin(), tripletlist.end());
+	Eigen::SparseLU<SMatrix> solver;
+	solver.compute(coff);
 
-  Eigen::VectorXd xu = solver.solve(bu);
-  Eigen::VectorXd xv = solver.solve(bv);
+	Eigen::VectorXd xu = solver.solve(bu);
+	Eigen::VectorXd xv = solver.solve(bv);
 
-  V_uv.resize(V_N, 2);
+	V_uv.resize(V_N, 2);
 
-  V_uv.col(0) = xu;
-  V_uv.col(1) = xv;
+	V_uv.col(0) = xu;
+	V_uv.col(1) = xv;
 
-  std::cout << "Build tuttle parameter is success.\n";
+	std::cout << "Build tuttle parameter is success.\n";
 	return 1;
 }
 
-
 bool MESHIO::buildHarmonicParameter(Eigen::MatrixXd& V_3d, Eigen::MatrixXi& T_3d, Eigen::MatrixXd& V_uv)
 {
-  Eigen::VectorXi bnd;
+	Eigen::VectorXi bnd;
 
-  // remove duplicate point
-  double minn_size = std::numeric_limits<double>::max();
+	// remove duplicate point
+	double minn_size = std::numeric_limits<double>::max();
 
-  for(int i = 0; i < T_3d.rows(); i++)
-  {
-    for(int j = 0; j < 3; j++)
-    {
-      int a = T_3d(i, j);
-      int b = T_3d(i, (j + 1) % 3);
-      minn_size = std::min(minn_size, (V_3d.row(a) - V_3d.row(b)).norm() );
-    }
-  }
-  minn_size = sqrt(minn_size);
-  Eigen::MatrixXd tmpV = V_3d;
-  Eigen::MatrixXi tmpT = T_3d;
-  Eigen::MatrixXi SVI, SVJ;
-  igl::remove_duplicate_vertices(tmpV, tmpT, minn_size / 1000.0, V_3d, SVI, SVJ, T_3d);
+	for (int i = 0; i < T_3d.rows(); i++)
+	{
+		for (int j = 0; j < 3; j++)
+		{
+			int a = T_3d(i, j);
+			int b = T_3d(i, (j + 1) % 3);
+			minn_size = std::min(minn_size, (V_3d.row(a) - V_3d.row(b)).norm());
+		}
+	}
+	minn_size = sqrt(minn_size);
+	Eigen::MatrixXd tmpV = V_3d;
+	Eigen::MatrixXi tmpT = T_3d;
+	Eigen::MatrixXi SVI, SVJ;
+	igl::remove_duplicate_vertices(tmpV, tmpT, minn_size / 1000.0, V_3d, SVI, SVJ, T_3d);
 
-  boundary_loop_by_dfs2(V_3d, T_3d, bnd); // mine
+	boundary_loop_by_dfs2(V_3d, T_3d, bnd); // mine
 
-  // Map the boundary to a circle, preserving edge proportions
-  Eigen::MatrixXd bnd_uv;
-  igl::map_vertices_to_circle(V_3d, bnd, bnd_uv);
+	// Map the boundary to a circle, preserving edge proportions
+	Eigen::MatrixXd bnd_uv;
+	igl::map_vertices_to_circle(V_3d, bnd, bnd_uv);
 
-  igl::harmonic(V_3d, T_3d, bnd, bnd_uv, 1, V_uv);
+	igl::harmonic(V_3d, T_3d, bnd, bnd_uv, 1, V_uv);
 
-  // Scale UV to make the texture more clear
-  // V_uv *= 10000;
+	// Scale UV to make the texture more clear
+	// V_uv *= 10000;
 
-  std::cout << "Build harmonic parameter is success.\n";
+	std::cout << "Build harmonic parameter is success.\n";
 	return 1;
 }
 
@@ -955,56 +933,56 @@ bool MESHIO::shuffleSurfaceid(int num, Mesh& mesh)
 {
 	num = std::min(100, num);
 	num = std::max(1, num);
-	
+
 	auto& M = mesh.Masks;
 	auto& V = mesh.Vertex;
 	auto& T = mesh.Topo;
 	std::vector<int> random_id;
 
-	if(M.cols() != 1) return 0;
+	if (M.cols() != 1) return 0;
 
 	std::unordered_map<int, int> mp_id;
 	int cnt = 0;
-	for(int i = 0; i < M.rows(); i++)
+	for (int i = 0; i < M.rows(); i++)
 	{
-		if(mp_id.count(M(i, 0))) continue;
+		if (mp_id.count(M(i, 0))) continue;
 		mp_id[M(i, 0)] = cnt++;
 	}
 
-	for(int i = 0; i < cnt; ++i)
+	for (int i = 0; i < cnt; ++i)
 	{
 		random_id.push_back(i);
 	}
 
-	for(int i = 0; i < std::min(100, num); ++i)
+	for (int i = 0; i < std::min(100, num); ++i)
 	{
-  	std::shuffle (random_id.begin (), random_id.end (), std::default_random_engine (i));
+		std::shuffle(random_id.begin(), random_id.end(), std::default_random_engine(i));
 	}
 
 	set<int> tt;
-	for(int i = 0; i < M.rows(); ++i)
+	for (int i = 0; i < M.rows(); ++i)
 	{
-		if(M(i, 0) == random_id[mp_id[M(i, 0)]])
+		if (M(i, 0) == random_id[mp_id[M(i, 0)]])
 		{
 			tt.insert(M(i, 0));
 		}
-		M(i, 0) = random_id[ mp_id[M(i, 0)] ];
+		M(i, 0) = random_id[mp_id[M(i, 0)]];
 	}
 	std::cout << "After shuffle the number of dulplication is : " << tt.size() << "\n";
 	return 1;
 }
 
 template <
-		typename DerivedF,
-		typename Derivedb,
-		typename VectorIndex,
-		typename DerivedF_filled>
+	typename DerivedF,
+	typename Derivedb,
+	typename VectorIndex,
+	typename DerivedF_filled>
 void MESHIO::topological_hole_fill(
-		const Eigen::MatrixBase<DerivedF> &F,
-		const Eigen::MatrixBase<Derivedb> &b,
-		const std::vector<VectorIndex> &holes,
-		Eigen::PlainObjectBase<DerivedF_filled> &F_filled,
-		Eigen::MatrixXd &V)
+	const Eigen::MatrixBase<DerivedF>& F,
+	const Eigen::MatrixBase<Derivedb>& b,
+	const std::vector<VectorIndex>& holes,
+	Eigen::PlainObjectBase<DerivedF_filled>& F_filled,
+	Eigen::MatrixXd& V)
 {
 	int n_filled_faces = 0;
 	int num_holes = holes.size();
@@ -1025,7 +1003,7 @@ void MESHIO::topological_hole_fill(
 	for (int i = 0; i < num_holes; i++, new_vert_id++)
 	{
 		Eigen::Vector3d hole_v(0, 0, 0);
-		for (auto &bnd_id : holes[i])
+		for (auto& bnd_id : holes[i])
 		{
 			hole_v += V.row(bnd_id);
 		}
@@ -1039,8 +1017,8 @@ void MESHIO::topological_hole_fill(
 		while (it != back)
 		{
 			F_filled.row(new_face_id++)
-					<< holes[i][(it + 1)],
-					holes[i][(it)], new_vert_id;
+				<< holes[i][(it + 1)],
+				holes[i][(it)], new_vert_id;
 			it++;
 		}
 	}
@@ -1048,23 +1026,23 @@ void MESHIO::topological_hole_fill(
 	assert(new_vert_id == V_rows + num_holes);
 }
 
-bool MESHIO::topoFillHole(Mesh &mesh)
+bool MESHIO::topoFillHole(Mesh& mesh)
 {
-	auto &V = mesh.Vertex;
-	auto &F = mesh.Topo;
+	auto& V = mesh.Vertex;
+	auto& F = mesh.Topo;
 	std::vector<std::vector<int>> all_bnds;
 	igl::boundary_loop(F, all_bnds);
 	// boundary_loop_by_dfs2(V, F, all_bnds); // mine
 
 	// Heuristic primary boundary choice: longest
-  auto primary_bnd = std::max_element(all_bnds.begin(), all_bnds.end(), [](const std::vector<int> &a, const std::vector<int> &b) { return a.size()>b.size(); });
+	auto primary_bnd = std::max_element(all_bnds.begin(), all_bnds.end(), [](const std::vector<int>& a, const std::vector<int>& b) { return a.size() > b.size(); });
 
 	Eigen::VectorXi bnd = Eigen::Map<Eigen::VectorXi>(primary_bnd->data(), primary_bnd->size());
 
 	// if there is a hole, fill it and erase additional vertices.
 	all_bnds.erase(primary_bnd);
 	Eigen::MatrixXi F_filled;
-	Eigen::MatrixXd &V_filled = V;
+	Eigen::MatrixXd& V_filled = V;
 	topological_hole_fill(F, bnd, all_bnds, F_filled, V_filled);
 	F = F_filled;
 	mesh.Masks.resize(0, 0);

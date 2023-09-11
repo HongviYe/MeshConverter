@@ -1,6 +1,5 @@
 #include "Halfedge/AABB_Tree.h"
 
-
 AABB::AABB()
 {
 	min = Vertex(0, 0, 0);
@@ -54,7 +53,6 @@ Vertex AABB::getCenter()
 	return Vertex((min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2);
 }
 
-
 AABBNode::AABBNode(std::vector<Vertex>& vertexList, std::vector<int>& face_id_list, AABBTreeInfo& treeInfo, int depth)
 {
 	left = NULL;
@@ -70,9 +68,9 @@ int AABBNode::FindBestAxis(std::vector<Vertex>& vertexList)
 {
 	size_t vertexNum = vertexList.size();
 
-	//divide this box into two boxes - pick a better axis 
+	//divide this box into two boxes - pick a better axis
 	int iAxis = 0;
-	int iAxisResult[3]; //stores how close end result is, the lower the better  
+	int iAxisResult[3]; //stores how close end result is, the lower the better
 
 	Vertex center = m_box.getCenter();
 
@@ -104,10 +102,10 @@ int AABBNode::FindBestAxis(std::vector<Vertex>& vertexList)
 			}
 			else
 				count++;
-		} // vertices  
+		} // vertices
 
 		iAxisResult[iAxis] = abs(left - right);
-	} //axis  
+	} //axis
 
 	int index = 0;
 	int result = iAxisResult[0];
@@ -134,10 +132,10 @@ void AABBNode::BuildTree(std::vector<Vertex>& vertexList, std::vector<int>& face
 {
 	int vertexNum = (int)vertexList.size();
 
-	// Build the node bounding box based from the triangle list 
+	// Build the node bounding box based from the triangle list
 	AABB Box(vertexList);
 
-	//debug box bounds 
+	//debug box bounds
 	SetBounds(Box);
 
 	if (depth + 1 > treeInfo.curr_max_depth)
@@ -152,15 +150,15 @@ void AABBNode::BuildTree(std::vector<Vertex>& vertexList, std::vector<int>& face
 
 	if (bMakeChildren)
 	{
-		// Find the longest axii of the node's box 
+		// Find the longest axii of the node's box
 		int iAxis = FindBestAxis(vertexList);
-		//Log("Longest axis: %d\n", iAxis);  
+		//Log("Longest axis: %d\n", iAxis);
 
-		//Get the Arrays for min, max dimensions 
+		//Get the Arrays for min, max dimensions
 		float* min = &Box.min[0];
 		float* max = &Box.max[0];
 
-		//get center of the box for longest axis 
+		//get center of the box for longest axis
 		Vertex center = Box.getCenter();
 
 		int count = 0;
@@ -170,13 +168,13 @@ void AABBNode::BuildTree(std::vector<Vertex>& vertexList, std::vector<int>& face
 		std::vector<int> leftSide_face_id;
 		std::vector<int> rightSide_face_id;
 
-		int leftCount = 0, rightCount = 0; //debug  
+		int leftCount = 0, rightCount = 0; //debug
 
-		//btw, things that could go wrong- if the mesh doesn't 
-		//send over the triangles correctly, then you might see 
-		//huge boxes that are misaligned (bad leaves). 
-		//things to check is making sure the vertex buffer is 
-		//correctly aligned along the adjancey buffers, etc 
+		//btw, things that could go wrong- if the mesh doesn't
+		//send over the triangles correctly, then you might see
+		//huge boxes that are misaligned (bad leaves).
+		//things to check is making sure the vertex buffer is
+		//correctly aligned along the adjancey buffers, etc
 		for (int i = 0; i < vertexNum; i++)
 		{
 			v[count] = vertexList[i];
@@ -187,11 +185,11 @@ void AABBNode::BuildTree(std::vector<Vertex>& vertexList, std::vector<int>& face
 				faceCenter[0] = (v[0][0] + v[1][0] + v[2][0]) / 3.0f;
 				faceCenter[1] = (v[0][1] + v[1][1] + v[2][1]) / 3.0f;
 				faceCenter[2] = (v[0][2] + v[1][2] + v[2][2]) / 3.0f;
-				//WVector faceCenter(x,y,z);  
+				//WVector faceCenter(x,y,z);
 
-				if (faceCenter[iAxis] <= center[iAxis]) //fSplit 
+				if (faceCenter[iAxis] <= center[iAxis]) //fSplit
 				{
-					//Store the verts to the left. 
+					//Store the verts to the left.
 					leftSide.push_back(v[0]);
 					leftSide.push_back(v[1]);
 					leftSide.push_back(v[2]);
@@ -200,7 +198,7 @@ void AABBNode::BuildTree(std::vector<Vertex>& vertexList, std::vector<int>& face
 				}
 				else
 				{
-					//Store the verts to the right. 
+					//Store the verts to the right.
 					rightSide.push_back(v[0]);
 					rightSide.push_back(v[1]);
 					rightSide.push_back(v[2]);
@@ -216,15 +214,15 @@ void AABBNode::BuildTree(std::vector<Vertex>& vertexList, std::vector<int>& face
 
 		if (treeInfo.m_bPrune && (leftCount == 0 || rightCount == 0))
 		{
-			//okay, now it's time to cheat. we couldn't use 
-			//the best axis to split the 
-			//box so now we'll resort to brute force hacks.... 
+			//okay, now it's time to cheat. we couldn't use
+			//the best axis to split the
+			//box so now we'll resort to brute force hacks....
 			leftSide.clear();
 			rightSide.clear();
 			leftSide_face_id.clear();
 			rightSide_face_id.clear();
 
-			int leftMaxIndex = vertexNum / 2; //left side  
+			int leftMaxIndex = vertexNum / 2; //left side
 
 			int count = 0;
 			Vertex v[3];
@@ -235,7 +233,7 @@ void AABBNode::BuildTree(std::vector<Vertex>& vertexList, std::vector<int>& face
 				{
 					if (i < leftMaxIndex)
 					{
-						//left node 
+						//left node
 						leftSide.push_back(v[0]);
 						leftSide.push_back(v[1]);
 						leftSide.push_back(v[2]);
@@ -261,7 +259,7 @@ void AABBNode::BuildTree(std::vector<Vertex>& vertexList, std::vector<int>& face
 			assert(leftSide.size() % 3 == 0);
 			assert(rightSide.size() % 3 == 0);
 
-			//Build child nodes 
+			//Build child nodes
 			if (leftSide.size() > 0)
 			{
 				treeInfo.left_children++;
@@ -275,14 +273,14 @@ void AABBNode::BuildTree(std::vector<Vertex>& vertexList, std::vector<int>& face
 		}
 		else
 		{
-			//should never happen 
+			//should never happen
 			bMakeChildren = false;
 		}
 	}
 
 	if (!bMakeChildren)
 	{
-		//Store the data directly if you want.... 
+		//Store the data directly if you want....
 		for (int i = 0; i < vertexList.size(); i++)
 		{
 			m_pVerts.push_back(vertexList[i]);
@@ -291,11 +289,10 @@ void AABBNode::BuildTree(std::vector<Vertex>& vertexList, std::vector<int>& face
 		{
 			face_id.push_back(face_id_list[i]);
 		}
-
 	}
 }
 
-AABB_Tree::AABB_Tree(std::vector<Vertex> &vertices_list)
+AABB_Tree::AABB_Tree(std::vector<Vertex>& vertices_list)
 {
 	treeInfo.max_tree_depth = 100;
 	treeInfo.min_vertices = 72;
@@ -312,15 +309,14 @@ AABB_Tree::AABB_Tree(std::vector<Vertex> &vertices_list)
 	for (int i = 0; i < vertices_list.size(); i++)
 		vertices_list_copy.push_back(vertices_list[i]);
 
-	root = new AABBNode(vertices_list, face_id_list,treeInfo, 0);
+	root = new AABBNode(vertices_list, face_id_list, treeInfo, 0);
 }
 
 AABB_Tree::~AABB_Tree()
 {
-
 }
 
-float AABB_Tree::point_line_distance(Vector3f p, Vector3f a, Vector3f b, Vector3f &nearestP,float ref_dist)
+float AABB_Tree::point_line_distance(Vector3f p, Vector3f a, Vector3f b, Vector3f& nearestP, float ref_dist)
 {
 	//ref_dist is used for efficiency
 	//reduce some computation
@@ -330,15 +326,15 @@ float AABB_Tree::point_line_distance(Vector3f p, Vector3f a, Vector3f b, Vector3
 	float point_line_dist;
 	float rst_dist;
 	ab.Normalize();
-	point_line_dist = (pa - pa.Dot(ab)*ab).Length();
-	p_inline = p + pa - pa.Dot(ab)*ab;
+	point_line_dist = (pa - pa.Dot(ab) * ab).Length();
+	p_inline = p + pa - pa.Dot(ab) * ab;
 
 	if (ref_dist >= 0 && point_line_dist > ref_dist)
 	{
 		//reduction of computation
 		return point_line_dist;
 	}
-	
+
 	if (inside_segment(p_inline, a, b))
 	{
 		nearestP = p_inline;
@@ -357,7 +353,7 @@ float AABB_Tree::point_line_distance(Vector3f p, Vector3f a, Vector3f b, Vector3
 	return rst_dist;
 }
 
-bool AABB_Tree::inside_segment(Vector3f &p, Vector3f a, Vector3f b)
+bool AABB_Tree::inside_segment(Vector3f& p, Vector3f a, Vector3f b)
 {
 	Vector3f pa, pb;
 	pa = a - p;
@@ -394,36 +390,35 @@ float AABB_Tree::point_AABB_distance(Vector3f p, AABB box)
 	mindist = 0;
 	if (x < minx)
 	{
-		mindist += (x - minx)*(x - minx);
+		mindist += (x - minx) * (x - minx);
 	}
-	else if (x>maxx)
+	else if (x > maxx)
 	{
-		mindist += (x - maxx)*(x - maxx);
+		mindist += (x - maxx) * (x - maxx);
 	}
 
 	if (y < miny)
 	{
-		mindist += (miny - y)*(miny - y);
+		mindist += (miny - y) * (miny - y);
 	}
-	else if (y>maxy)
+	else if (y > maxy)
 	{
-		mindist += (y - maxy)*(y - maxy);
+		mindist += (y - maxy) * (y - maxy);
 	}
 
 	if (z < minz)
 	{
-		mindist += (minz - z)*(minz - z);
+		mindist += (minz - z) * (minz - z);
 	}
-	else if (z>maxz)
+	else if (z > maxz)
 	{
-		mindist += (z - maxz)*(z - maxz);
+		mindist += (z - maxz) * (z - maxz);
 	}
 
 	return sqrtf(mindist);
 }
 
-
-float AABB_Tree::findNearstPoint(Vector3f p, Vector3f &nearestP)
+float AABB_Tree::findNearstPoint(Vector3f p, Vector3f& nearestP)
 {
 	float global_min_dist;
 	Vector3f globalVertex;
@@ -431,13 +426,13 @@ float AABB_Tree::findNearstPoint(Vector3f p, Vector3f &nearestP)
 	global_min_dist = (vertices_list_copy[0] - p).Length();
 	globalVertex = vertices_list_copy[0];
 	globalFaceID = 0;
-	
-	Traverse_Search(root,p,globalVertex,global_min_dist,globalFaceID);
+
+	Traverse_Search(root, p, globalVertex, global_min_dist, globalFaceID);
 	nearestP = globalVertex;
 	return global_min_dist;
 }
 
-void AABB_Tree::Traverse_Search(AABBNode *node,Vector3f &p,Vector3f & globalVertex,float& global_min_dist,int& globalFaceID)
+void AABB_Tree::Traverse_Search(AABBNode* node, Vector3f& p, Vector3f& globalVertex, float& global_min_dist, int& globalFaceID)
 {
 	if (node == NULL)
 		return;
@@ -454,9 +449,9 @@ void AABB_Tree::Traverse_Search(AABBNode *node,Vector3f &p,Vector3f & globalVert
 		Traverse_Search(node->right, p, globalVertex, global_min_dist, globalFaceID);
 }
 
-float AABB_Tree::search_entire_node(AABBNode *node, Vector3f &p, Vector3f & globalVertex, float &global_min_dist, int& globalFaceID)
+float AABB_Tree::search_entire_node(AABBNode* node, Vector3f& p, Vector3f& globalVertex, float& global_min_dist, int& globalFaceID)
 {
-	float min_dist,temp_rst;
+	float min_dist, temp_rst;
 	int cur_face_id;
 	Vector3f min_point;
 	Vector3f rst;
@@ -464,7 +459,7 @@ float AABB_Tree::search_entire_node(AABBNode *node, Vector3f &p, Vector3f & glob
 		return -1;
 	if (node->m_nNumVerts < 3)
 		return -1;
-	
+
 	min_dist = point_tri_distance_refine(p, node->m_pVerts[0], node->m_pVerts[1], node->m_pVerts[2], min_point, -1);
 	cur_face_id = node->face_id[0];
 
@@ -487,7 +482,7 @@ float AABB_Tree::search_entire_node(AABBNode *node, Vector3f &p, Vector3f & glob
 	return global_min_dist;
 }
 
-float AABB_Tree::point_tri_distance_refine(Vector3f p, Vector3f a, Vector3f b, Vector3f c, Vector3f &nearestP, float ref_dist)
+float AABB_Tree::point_tri_distance_refine(Vector3f p, Vector3f a, Vector3f b, Vector3f c, Vector3f& nearestP, float ref_dist)
 {
 	Vector3f center = Vector3f(a[0] + b[0] + c[0], a[1] + b[1] + c[1], a[2] + b[2] + c[2]);
 	Vector3f ab, ac, bc;
@@ -508,7 +503,7 @@ float AABB_Tree::point_tri_distance_refine(Vector3f p, Vector3f a, Vector3f b, V
 
 	temp = a - p;
 	dist_to_plane = fabs(temp.Dot(tri_face_normal));
-	if (ref_dist >= 0 && ref_dist<dist_to_plane)
+	if (ref_dist >= 0 && ref_dist < dist_to_plane)
 	{
 		//reduction for efficiency
 		return dist_to_plane;
@@ -517,13 +512,13 @@ float AABB_Tree::point_tri_distance_refine(Vector3f p, Vector3f a, Vector3f b, V
 	nab = center - a;
 	nbc = center - b;
 	nac = center - a;
-	nab = nab - nab.Dot(ab)*ab;
-	nbc = nbc - nbc.Dot(bc)*bc;
-	nac = nac - nac.Dot(ac)*ac;
+	nab = nab - nab.Dot(ab) * ab;
+	nbc = nbc - nbc.Dot(bc) * bc;
+	nac = nac - nac.Dot(ac) * ac;
 	nab.Normalize();
 	nbc.Normalize();
 	nac.Normalize();
-	p_projected = p + temp.Dot(tri_face_normal)*tri_face_normal;
+	p_projected = p + temp.Dot(tri_face_normal) * tri_face_normal;
 
 	float d1, d2, d3, d4, d5;
 	d1 = tri_face_normal.Dot(ab);

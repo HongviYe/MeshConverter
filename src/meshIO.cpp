@@ -5,6 +5,12 @@
 #include <fstream>
 #include <time.h>
 
+//#include "IO/Legacy/vtkPolyDataReader.h"
+//#include "Common/Core/vtkSmartPointer.h"
+//#include "Common/DataModel/vtkPolyData.h"
+//#include "IO/Legacy/vtkUnstructuredGridReader.h"
+//#include "IO/Legacy/vtkPolyDataWriter.h"
+
 #define BUFFER_LENGTH 256
 
 using namespace std;
@@ -64,7 +70,55 @@ int MESHIO::readEPS(std::string filename, int& cou, std::map<int, double>& mpd, 
 	}
 	return 0;
 }
+int MESHIO::readVTK_newer_version(std::string filename, Mesh& mesh, std::string mark_pattern) {
+    auto& M = mesh.Masks;
+    auto& V = mesh.Vertex;
+    auto& T = mesh.Topo;
+    int nPoints = 0;
+    int nFacets = 0;
+    std::ifstream vtk_file;
+    vtk_file.open(filename);
+    if (!vtk_file.is_open()) {
+        std::cout << "No such file. - " << filename << std::endl;
+        return -1;
+    }
+    std::string vtk_type_str = "CONNECTIVITY";
+    char buffer[BUFFER_LENGTH];
+    while (!vtk_file.eof()) {
+        vtk_file.getline(buffer, BUFFER_LENGTH);
+        std::string line = (std::string)buffer;
+        if (vtk_file.peek() == EOF) break;
+        if (line.length() < 2 || buffer[0] == '#')
+            continue;
 
+        if (line.find("POINTS ") != std::string::npos) {
+            std::vector<std::string> words = seperate_string(line);
+            nPoints = stoi(words[1]);
+            V.resize(nPoints, 3);
+            for (int i = 0; i < nPoints; i++) {
+                vtk_file >> V(i, 0) >> V(i, 1) >> V(i, 2);
+                
+            }
+        }
+        if (line.find("CELLS") != std::string::npos) {
+            std::vector<std::string> words = seperate_string(line);
+            nFacets = stoi(words[1])-1;
+            T.resize(nFacets, 3);
+        }
+        if (line.find("CONNECTIVITY") != std::string::npos) {
+            
+            string trash;
+            //vtk_file >> trash;
+            for (int i = 0; i < nFacets; i++) {
+                vtk_file >> T(i,0) >> T(i, 1) >> T(i, 2);
+            }
+          //  std::cout << T(0, 0) << std::endl;
+        }
+    }
+  //  std::cout << T(0, 0) << std::endl;
+    vtk_file.close();
+    return 1;
+}
 int MESHIO::readVTK(std::string filename, Mesh& mesh, std::string mark_pattern) {
 	auto& M = mesh.Masks;
 	auto& V = mesh.Vertex;
@@ -82,8 +136,15 @@ int MESHIO::readVTK(std::string filename, Mesh& mesh, std::string mark_pattern) 
     while(!vtk_file.eof()) {
         vtk_file.getline(buffer, BUFFER_LENGTH);
         std::string line = (std::string)buffer;
-        if(line.length() < 2 || buffer[0] == '#')
+        if(line.length() < 2 )
             continue;
+        if (line.find("Version") != std::string::npos) {
+            std::vector<std::string> words = seperate_string(line);
+            if (words[4][0] == '5') {
+                vtk_file.close();
+                return readVTK_newer_version(filename,mesh,mark_pattern);              
+            }
+        }
         if(line.find("DATASET") != std::string::npos) {
             std::vector<std::string> words = seperate_string(line);
             if(words[1] == "POLYDATA") 
@@ -101,7 +162,9 @@ int MESHIO::readVTK(std::string filename, Mesh& mesh, std::string mark_pattern) 
             for(int i = 0; i < nPoints; i++) {
                 vtk_file.getline(buffer, BUFFER_LENGTH);
                 words = seperate_string(std::string(buffer));
-                V.row(i) << stod(words[0]), stod(words[1]), stod(words[2]);
+                for(int j = 0; j < 3; ++j){
+                    V(i, j) = stod(words[j]);
+                }
             }
         }
         if(line.find(vtk_type_str) != std::string::npos) {
@@ -114,6 +177,9 @@ int MESHIO::readVTK(std::string filename, Mesh& mesh, std::string mark_pattern) 
                 for(int j = 0; j < stoi(words[0]); j++) 
                     T(i, j) = stoi(words[j + 1]);
             }
+            M.resize(nFacets, 1);
+			for (int i = 0; i < nFacets; i++)
+				M(i, 0) = 0;
         }
         if(line.find("CELL_DATA ") != std::string::npos) {
             std::vector<std::string> words = seperate_string(line);
@@ -122,19 +188,32 @@ int MESHIO::readVTK(std::string filename, Mesh& mesh, std::string mark_pattern) 
                 std::cout << "Ignore CELL_DATA" << std::endl;
                 return 0;
             }
-            vtk_file.getline(buffer, BUFFER_LENGTH);
-            std::string data_type = seperate_string(std::string(buffer))[1];
-            if(data_type != mark_pattern) 
-                continue;
-            M.resize(nFacets, 1);
-			for (int i = 0; i < nFacets; i++)
-				M(i, 0) = 0;
-            vtk_file.getline(buffer, BUFFER_LENGTH);
-            for(int i = 0; i < nFacets; i++) {
+            if (vtk_type_str == "POLYGONS ")
+            {
                 vtk_file.getline(buffer, BUFFER_LENGTH);
-				int surface_id=stoi(std::string(buffer));
-				M.row(i) << surface_id;
-					
+                vtk_file.getline(buffer, BUFFER_LENGTH);
+                std::string data_type = seperate_string(std::string(buffer))[0];
+                if (data_type != mark_pattern)
+                    continue;
+                for (int i = 0; i < nFacets; i++){
+                    vtk_file.getline(buffer, BUFFER_LENGTH);
+                    int surface_id = stoi(std::string(buffer));
+                    M(i, 0) = surface_id;
+                }
+            }
+            else
+            {
+                vtk_file.getline(buffer, BUFFER_LENGTH);
+                std::string data_type = seperate_string(std::string(buffer))[1];
+                if (data_type != mark_pattern)
+                    continue;
+                vtk_file.getline(buffer, BUFFER_LENGTH);
+                for (int i = 0; i < nFacets; i++)
+                {
+                    vtk_file.getline(buffer, BUFFER_LENGTH);
+                    int surface_id = stoi(std::string(buffer));
+                    M(i, 0) = surface_id;
+                }
             }
         }
     }
@@ -888,7 +967,6 @@ int MESHIO::readSTL(std::string filename, Mesh &mesh){
 
     return 1;
 }
-
 int MESHIO::writeStlIn(std::string filename, const Mesh &mesh)
 {
     auto& M = mesh.Masks;

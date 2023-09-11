@@ -24,6 +24,8 @@ namespace MESHIO
   void get_AABB_tree(PolyMesh *mesh, AABB_Tree *&abtree);
   double calculateTargetEdgeLength(PolyMesh *mesh);
 
+  void removeHangingFace(Mesh& mesh);
+
   void remesh(Mesh& mesh);
 }
 
