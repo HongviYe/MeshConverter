@@ -30,6 +30,7 @@ int readPLY(std::string filename, Mesh &mesh); //TODO
 int readOBJ(std::string filename, Mesh &mesh);
 int readFacet(std::string filename, Mesh &mesh);
 int readTetgen(std::string nodefilename, std::string elefilename, Mesh &mesh);
+int readSTL(std::string filename, Mesh &mesh);
 
 int writeVTK(std::string filename, const Mesh &mesh, std::string mark_pattern = "");
 int writeEpsVTK(std::string filename, const Mesh &mesh, int& cou, std::map<int, double>& mpd, std::map<int, std::vector<int>>& mpi, std::string mark_pattern = "");
