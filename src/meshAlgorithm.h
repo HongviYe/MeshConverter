@@ -19,7 +19,7 @@ namespace MESHIO{
 	bool reverseOrient(Eigen::MatrixXi &T);
 	bool repair(Mesh &mesh);
 	void checkOrientation(Mesh & mesh);
-	bool resetOrientation(Mesh &mesh,bool reset_mask=false);
+	bool resetOrientation(Mesh& mesh, bool reset_mask = false, std::vector<int> saveid = std::vector<int>());
 	bool removeDulplicatePoint(Eigen::MatrixXd& V, Eigen::MatrixXi& T, double eps);
 	bool createBox(std::vector<double> create_box, Mesh &mesh);
 	bool removeBox(Mesh &mesh);

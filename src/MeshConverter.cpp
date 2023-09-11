@@ -37,6 +37,7 @@ int main(int argc, char** argv)
 	int reparam_way = -1;
 	int shuffle_num = 1;
 
+	vector<int> saveid; /// these ids will not be removed after reset_orient_faceid
 	vector<double> rotateVec;
 	vector<double> boxVec;
 	vector<double> createbox;
@@ -62,6 +63,7 @@ int main(int argc, char** argv)
 	app.add_flag("--reset_orient", resetOritation, "Regularize orientation");
 	app.add_flag("--check_orient", checkOritation, "Check orientation error");
 	app.add_flag("--reset_orient_faceid", resetOritationFaceid, "Regularize orientation and reset the facet mask by connected graph component index.");
+	app.add_option("--save_id", saveid, "saved id.");
 	app.add_flag("--rm_zero_area", RepairZeroAera, "Repair mesh file for the facet's area that equal to zero.");
 	app.add_flag("--rm_box", removebox, "remove the component with the biggest volume. warning, the facet id may be reoriented");
 	app.add_flag("--rm_duplicate_point", DeleteDulPoint, "Delete duplicate points; Format is : e.g. --rm_duplicate_point=1e-6.");
@@ -201,7 +203,7 @@ int main(int argc, char** argv)
 	if (resetOritation)
 		MESHIO::resetOrientation(mesh);
 	if (resetOritationFaceid)
-		MESHIO::resetOrientation(mesh, true);
+		MESHIO::resetOrientation(mesh, true,saveid);
 	if (checkOritation)
 		MESHIO::checkOrientation(mesh);
 

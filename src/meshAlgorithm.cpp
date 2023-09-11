@@ -546,7 +546,7 @@ void MESHIO::checkOrientation(Mesh& mesh) {
 
 	return;
 }
-bool MESHIO::resetOrientation(Mesh& mesh, bool reset_mask) {
+bool MESHIO::resetOrientation(Mesh& mesh, bool reset_mask,std::vector<int> saveid) {
 	vector<vector<double>> point_list(mesh.Vertex.rows(), vector<double>(mesh.Vertex.cols(), 0));
 	vector<vector<int>> facet_list(mesh.Topo.rows(), vector<int>(mesh.Topo.cols(), 0));
 	for (int i = 0; i < mesh.Vertex.rows(); i++) {
@@ -572,9 +572,27 @@ bool MESHIO::resetOrientation(Mesh& mesh, bool reset_mask) {
 		}
 	}
 	if (reset_mask) {
-		mesh.Masks.resize(mesh.Topo.rows(), mesh.Masks.cols());
-		for (int i = 0; i < mesh.Topo.rows(); i++) {
-			mesh.Masks(i, 0) = block_mark[i];
+		if (mesh.Masks.rows() != mesh.Topo.rows()) {
+			mesh.Masks.resize(mesh.Topo.rows(), mesh.Masks.cols());
+			for (int i = 0; i < mesh.Topo.rows(); i++) {
+				mesh.Masks(i, 0) = block_mark[i];
+			}
+		}
+		else {
+			std::map<int,int> id_map;
+			int count = 0;
+			for (auto i : saveid)
+				if(id_map.find(i)==id_map.end())
+					id_map[i]= count++;
+			for (int i = 0; i < mesh.Topo.rows(); i++) {
+				if (id_map.find(mesh.Masks(i, 0)) != id_map.end()) {
+					mesh.Masks(i, 0) = id_map[mesh.Masks(i, 0)];// block_mark[i];
+				}
+				else {
+					mesh.Masks(i, 0)= block_mark[i]+ id_map.size();
+				}
+			
+			}
 		}
 	}
 	cout << "Orientation reset" << endl;
