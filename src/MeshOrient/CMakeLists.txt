@@ -20,7 +20,7 @@ target_link_libraries(MeshOrient PUBLIC pthread)
 endif()
 
 if(MESHORIENT_BUILD_EXECUTABLE)
-    add_executable(MeshOrientExe src/MeshOrientExe.cpp)
+    add_executable(MeshOrientExe MeshOrientExe.cpp)
     target_link_libraries(MeshOrientExe PUBLIC MeshOrient)
     set_target_properties(MeshOrientExe PROPERTIES OUTPUT_NAME MeshOrient)
 endif()

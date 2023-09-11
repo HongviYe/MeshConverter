@@ -20,8 +20,8 @@ class facet {
 public:
     int id = 0;
     int blockId = -1;
-    std::array<int, 3> form = {0, 0, 0};
-    std::array<int, 3> neig = {0, 0, 0};
+    std::array<int, 3> form = {{0, 0, 0}};
+    std::array<int, 3> neig = {{0, 0, 0}};
 };
 
 class sfMesh {

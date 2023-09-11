@@ -1,4 +1,5 @@
 #include "meshIO.h"
+#include "stl_reader.h"
 #include <algorithm>
 #include <iostream>
 #include <fstream>
@@ -849,6 +850,41 @@ int MESHIO::readTetgen(string nodefilename, string elefilename, Mesh &mesh) {
         }
     }
     elefile.close();
+
+    return 1;
+}
+
+int MESHIO::readSTL(std::string filename, Mesh &mesh){
+    auto& M = mesh.Masks;
+    auto& V = mesh.Vertex;
+    auto& T = mesh.Topo;
+    int nPoints = 0;
+    int nFacets = 0;
+
+    stl_reader::StlMesh<> stlmesh;
+    int result = stlmesh.read_file(filename);
+    if(!result){
+        return -1;
+    }
+
+    nPoints = stlmesh.num_vrts(); // 点数量
+    V.resize(nPoints, 3);
+
+    for(int i = 0; i < nPoints; i++){
+        V.row(i) << stlmesh.raw_coords()[i*3 + 0] , stlmesh.raw_coords()[i*3 + 1] ,  stlmesh.raw_coords()[i*3 + 2];
+    }
+
+    nFacets = stlmesh.num_tris(); // 三角面片数量
+    T.resize(nFacets,3);
+    for(int i = 0; i < nFacets; i++){
+        for(int j = 0; j < 3 ; j++){
+            T(i, j) = stlmesh.tri_corner_ind(i,j);
+        }
+    }
+
+    M.resize(nFacets,1);  // 面id
+    for (int i = 0; i < nFacets; i++)
+		M(i, 0) = 0;  // 所有三角面片都在同一个面
 
     return 1;
 }

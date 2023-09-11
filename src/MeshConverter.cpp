@@ -41,7 +41,7 @@ int main(int argc, char **argv)
 	vector<double> createbox;
 	app.add_option("--boundingbox,-b", boxVec, "add a bounding box to a existed mesh. Format is (length ratio, width ratio, hight ratio, refine number), (5,5,5,4) is recommand");
 	app.add_option("-r", rotateVec, "input rotate param. Format is (start_x, start_y, start_z, end_x, end_y, end_z, angle) or (end_x, end_y, end_z, angle). angle value scale is (0, 2).");
-	app.add_option("-i", input_filenames, "input filename. (string, required, supported format: vtk, mesh, pls, obj)")->required()->expected(1, 3);
+	app.add_option("-i", input_filenames, "input filename. (string, required, supported format: vtk, mesh, pls, obj, stl)")->required()->expected(1, 3);
 	app.add_option("-p", input_filename_ex, "input filename. (string, required)");
 	app.add_flag("-k", exportVTK, "Write mesh in VTK format.");
 	app.add_flag("-e", exportEpsVTK, "Set eps in VTK format.");
@@ -130,6 +130,8 @@ int main(int argc, char **argv)
 			MESHIO::readTetgen(nodefilename, facefilename, mesh);
 		}
 	}
+	else if (input_postfix == "stl")
+		MESHIO::readSTL(input_filename, mesh);
 	else
 	{
 		cout << "Unsupported input format - " << input_postfix << endl;
