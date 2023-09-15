@@ -43,6 +43,8 @@ set(SOURCES
     src/meshAlgorithm.cpp
     src/MeshConverter.cpp
     src/remesh.cpp
+    src/facet_classification.h
+    src/facet_classification.cpp
     
     src/Halfedge/PolyMesh_Base.cpp
     src/Halfedge/PolyMesh.cpp

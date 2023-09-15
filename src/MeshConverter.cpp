@@ -1,4 +1,4 @@
-
+#include "facet_classification.h"
 #include "meshIO.h"
 #include "CLI11.hpp"
 #include "meshAlgorithm.h"
@@ -32,9 +32,11 @@ int main(int argc, char** argv)
 	bool removebox = false;
 	bool bremesh = false;
 	bool fillhole = false;
+	
 	bool normalize = false;
 	bool remove_hanging_face = false;
 	double DeleteDulPoint = -1;
+	double reset_face_id_by_angle = -1;
 	int reparam_way = -1;
 	int shuffle_num = 1;
 
@@ -64,6 +66,7 @@ int main(int argc, char** argv)
 	app.add_flag("--reset_orient", resetOritation, "Regularize orientation");
 	app.add_flag("--check_orient", checkOritation, "Check orientation error");
 	app.add_flag("--reset_orient_faceid", resetOritationFaceid, "Regularize orientation and reset the facet mask by connected graph component index.");
+	app.add_flag("--reset_faceid_angle", reset_face_id_by_angle, "Regularize orientation and reset the facet mask by facet angle.");
 	app.add_option("--save_id", saveid, "saved id.");
 	app.add_flag("--rm_zero_area", RepairZeroAera, "Repair mesh file for the facet's area that equal to zero.");
 	app.add_flag("--rm_box", removebox, "remove the component with the biggest volume. warning, the facet id may be reoriented");
@@ -178,6 +181,7 @@ int main(int argc, char** argv)
 		}
 	}
 
+
 	//********* Normalize *********
 
 	if (normalize) {
@@ -212,6 +216,10 @@ int main(int argc, char** argv)
 	if (reverseFacetOrient)
 	{
 		MESHIO::reverseOrient(mesh.Topo);
+	}
+
+	if (mesh.Masks.size() == 0 || reset_face_id_by_angle>0) {
+		MESHALG::facet_classification(mesh.Vertex, mesh.Topo, reset_face_id_by_angle, mesh.Masks);
 	}
 
 	//********* repair ********
