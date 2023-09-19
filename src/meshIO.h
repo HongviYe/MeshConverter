@@ -17,6 +17,8 @@ struct Mesh {
 	Eigen::MatrixXd Vertex;
 	Eigen::MatrixXi Topo;
 	Eigen::MatrixXi Masks;
+	Eigen::MatrixXd f_normal;
+	Eigen::MatrixXd v_normal;
 };
 
 namespace MESHIO{

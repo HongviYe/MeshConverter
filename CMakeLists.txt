@@ -50,7 +50,9 @@ set(SOURCES
     src/Halfedge/PolyMesh.cpp
     src/Halfedge/PolyMeshIterators.cpp
     src/Halfedge/AABB_Tree.cpp
-    
+    src/SurfaceHoleFilling.cpp
+    src/SurfaceRemesh.cpp
+
     )
 if(hasParent)
 set(EXTERNAL_DIR ${hasParent}/third_party)
