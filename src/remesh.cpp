@@ -343,13 +343,14 @@ void MESHIO::removeHangingFace(Mesh& mesh) {
             }
         }
     }
-    if (Q.empty())
+    if (Q.empty()){
+        std::cout << "Remove hanging facet number is 0\n";
         return;
-    std::set<int> removed_tri;
+    }
+    std::vector<bool> removed_tri(mesh.Topo.rows(), false);
     while (!Q.empty()) {
         int f = Q.front();
-        removed_tri.insert(f);
-        std::cout << "removing " << f << std::endl;
+        removed_tri[f] = true;
         Q.pop();
         for (int j = 0; j < 3; j++) {
             for (auto k : triangle_neighbour[f][j]) {
@@ -362,14 +363,16 @@ void MESHIO::removeHangingFace(Mesh& mesh) {
         }
     }
 
-    Eigen::MatrixXi topos(mesh.Topo.rows() - removed_tri.size(), 3);
+    int tri_num = std::count(removed_tri.begin(), removed_tri.end(), false);
+    Eigen::MatrixXi topos(tri_num, 3);
     int count = 0;
     for (int i = 0; i < mesh.Topo.rows(); i++) {
-        if (removed_tri.find(i) == removed_tri.end()) {
+        if (!removed_tri[i]) {
             topos.row(count++) = mesh.Topo.row(i);
         }
     }
     mesh.Topo = topos;
+    std::cout << "Remove hanging facet number is " << removed_tri.size() - tri_num << "\n";
 }
 
 

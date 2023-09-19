@@ -53,7 +53,7 @@ namespace MESHALG
 				}
 			}
 		}
-		std::cout << "there are " << start_faceid << " colors" << endl;
+		std::cout << "there are " << start_faceid << " colors" << std::endl;
 		return;
 	}
 }
