@@ -3,6 +3,7 @@
 #include "CLI11.hpp"
 #include "meshAlgorithm.h"
 #include "remesh.h"
+#include "SurfaceHoleFilling.h"
 #include <iostream>
 
 #define _DEBUG_ 1
@@ -12,7 +13,7 @@ using namespace std;
 int main(int argc, char** argv)
 {
 	CLI::App app{ "MeshConveter" };
-	std::cout << "Program version: 2023.07.05" << std::endl;
+	std::cout << "Program version: 2023.09.19" << std::endl;
 	vector<string> input_filenames;
 	string input_filename_ex;
 	bool exportMESH = false;
@@ -32,6 +33,7 @@ int main(int argc, char** argv)
 	bool removebox = false;
 	bool bremesh = false;
 	bool fillhole = false;
+	bool surfaceholefill = false;
 	
 	bool normalize = false;
 	bool remove_hanging_face = false;
@@ -39,6 +41,7 @@ int main(int argc, char** argv)
 	double reset_face_id_by_angle = -1;
 	int reparam_way = -1;
 	int shuffle_num = 1;
+	int fairing_k = -1;
 
 	vector<int> saveid; /// these ids will not be removed after reset_orient_faceid
 	vector<double> rotateVec;
@@ -58,7 +61,13 @@ int main(int argc, char** argv)
 	app.add_flag("--stl_in", exportStlIn, "Write mesh in stl.in format.");
 	app.add_flag("--remesh", bremesh, "Remesh");
 	app.add_flag("--fillhole", fillhole, "Fill hole by topology");
+
+	app.add_flag("--surfaceholefill", surfaceholefill, "Fill surfacehole by fairing.");
+
 	app.add_flag("--shuffle", shuffleMark, "Shuffle surface_id for view clearly.");
+
+	app.add_option("--fairing_k", fairing_k, "fairing_k is 2 at least and mustn't be too big.");
+
 	app.add_option("--shuffle_num", shuffle_num, "Shuffle number is [1, 100].");
 	app.add_option("--reparam", reparam_way, "input reparameter way. 0 is Tuttle. 1 is harmonic.");
 	app.add_option("--create_box", createbox, "Create a mesh only contain a box. Format is (x1_min, y1_min, z1_min, x1_max, y1_max, z1_max, ...)");
@@ -237,6 +246,25 @@ int main(int argc, char** argv)
 	//********* HoleFill *********
 	if (fillhole) {
 		MESHIO::topoFillHole(mesh);
+	}
+
+	//********* HoleFill *********
+	if (surfaceholefill) {
+		if (fairing_k <2)
+		{
+			std::cout << "Fairing_k is error!Fairing_k at least be 2\n";
+			return 0;
+		}
+		else 
+		{
+			SurfaceHoleFilling holefill(mesh);
+			holefill.init_hole_fill();
+			//if (fairing_k != 2 && fairing_k != 3)std::cout << "fairing_k must be 2 or 3.\n";
+			holefill.fair(fairing_k); // 基于变分法
+			mesh = holefill.get_all_mesh();
+		}
+		
+
 	}
 
 	//********* Remesh *********
