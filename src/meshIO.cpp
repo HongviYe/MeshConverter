@@ -889,7 +889,7 @@ int MESHIO::readTetgen(string nodefilename, string elefilename, Mesh &mesh) {
     getline(nodefile, line);
     words = seperate_string(line);
     int nPoint = stoi(words[0]);
-    int pointType = (words.size() > 1) ? stoi(words[1]) : 3;
+    int pointType = 3;
     V.resize(nPoint, pointType);
     while(!nodefile.eof()) {
         getline(nodefile, line);
@@ -915,7 +915,8 @@ int MESHIO::readTetgen(string nodefilename, string elefilename, Mesh &mesh) {
     getline(elefile, line);
     words = seperate_string(line);
     int nElement = stoi(words[0]);
-    int elementType = (words.size() > 1) ? stoi(words[1]) : 4;
+    int elementType = stoi(words[1]);
+    if(elementType == 1) elementType = 3;
     T.resize(nElement, elementType);
     while(!elefile.eof()) {
         getline(elefile, line);
