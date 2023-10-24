@@ -31,13 +31,22 @@ namespace MESHIO{
 
 
   // called by the algorithm above.
-	void dfs_get_loop2(
-  int cur, int pre, 
-  std::vector<bool>& vis, 
-  std::vector<std::vector<int>>& G, 
-  std::vector<int>& path, 
-  std::vector<std::vector<int>>& loop_lst);
+	// void dfs_get_loop2(
+  // int cur, int pre, 
+  // std::vector<bool>& vis, 
+  // std::vector<std::vector<int>>& G, 
+  // std::vector<int>& path, 
+  // std::vector<std::vector<int>>& loop_lst);
 	void boundary_loop_by_dfs2(Eigen::MatrixXd &V, Eigen::MatrixXi &F, Eigen::VectorXi &bnd);
+	void get_boundary_loop(std::vector<std::array<int, 2>> &edge,
+                       std::vector<std::vector<int>> &loop);
+	void boundary_loop_dfs(int cur,
+                       int pre,
+                       std::vector<bool> &vis,
+                       std::vector<int> &du,
+                       std::vector<std::vector<int>> &G,
+                       std::vector<int> &path,
+                       std::vector<std::vector<int>> &loop_lst) ;
 	template <
 			typename DerivedF,
 			typename Derivedb,

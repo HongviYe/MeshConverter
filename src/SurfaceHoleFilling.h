@@ -29,12 +29,12 @@ public:
 		Eigen::PlainObjectBase<DerivedY>& Y);
 
 
-	void SurfaceHoleFilling::my_triangle_triangle_adjacency(
+	void my_triangle_triangle_adjacency(
 		const Eigen::MatrixXi& F,
 		Eigen::MatrixXi& TT,
 		Eigen::MatrixXi& TTi);
 
-	void SurfaceHoleFilling::my_boundary_loop(
+	void my_boundary_loop(
 		const Eigen::MatrixXi& F,
 		Eigen::VectorXi& L);
 

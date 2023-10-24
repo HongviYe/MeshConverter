@@ -5,6 +5,8 @@ set(CMAKE_CXX_FLAGS "-std=c++11" ${CMAKE_CXX_FLAGS})
 # options
 option(MESHORIENT_BUILD_EXECUTABLE "Build executable." OFF)
 option(MESHORIENT_DOWNLOAD "Download extern dependent library." OFF)
+option(USE_GEOGRAM "Download extern dependent library." OFF)
+
 if(NOT CMAKE_BUILD_TYPE)
 	message(STATUS "No build type selected, default to Release")
 	set(CMAKE_BUILD_TYPE "Release")
@@ -75,6 +77,10 @@ add_executable(MeshConverter ${SOURCES})
 add_subdirectory(src/MeshOrient)
 target_link_libraries(MeshConverter MeshOrient)
 
+if(USE_GEOGRAM)
+target_link_libraries(MeshConverter geogram)
+target_compile_definitions(MeshConverter PUBLIC USE_GEOGRAM)
+endif()
 
 # try to install to a target 
 set(target_bin MeshConverter)

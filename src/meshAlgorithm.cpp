@@ -671,38 +671,111 @@ bool MESHIO::removeDulplicatePoint(Eigen::MatrixXd& V, Eigen::MatrixXi& F, doubl
 	std::cout << "Remove " << V_in.rows() - V.rows() << " duplicate points\n";
 	return true;
 }
+void MESHIO::get_boundary_loop(std::vector<std::array<int, 2>> &edge,
+                       std::vector<std::vector<int>> &loop) {
+    std::vector<int> bv;  // boundary vertex.
+    for (int i = 0; i < edge.size(); ++i) {
+        bv.push_back(edge[i][0]);
+        bv.push_back(edge[i][1]);
+    }
+    std::sort(bv.begin(), bv.end());
+    bv.erase(std::unique(bv.begin(), bv.end()), bv.end());
+    std::map<int, int> bv_to_nbv;  // to new boundary vertex.
+    for (int i = 0; i < bv.size(); ++i) {
+        bv_to_nbv[bv[i]] = i;
+    }
 
-void MESHIO::dfs_get_loop2(int cur, int pre, std::vector<bool>& vis, std::vector<std::vector<int>>& G, std::vector<int>& path, std::vector<std::vector<int>>& loop_lst)
-{
-	if (vis[cur])
-	{
-		std::vector<int> tmp;
-		for (int i = path.size() - 2; i >= 0; i--)
-		{
-			if (path[i] != cur)
-			{
-				tmp.push_back(path[i]);
-			}
-			else
-			{
-				tmp.push_back(path[i]);
-				break;
-			}
-		}
-		loop_lst.push_back(tmp);
-		return;
-	}
+    std::vector<std::vector<int>> G(bv.size(), std::vector<int>());
+    std::vector<bool> vis(bv.size(), 0);
+    std::vector<int> du(bv.size(), 0);
+    for (int i = 0; i < edge.size(); ++i) {
+        G[bv_to_nbv[edge[i][0]]].push_back(bv_to_nbv[edge[i][1]]);
+        G[bv_to_nbv[edge[i][1]]].push_back(bv_to_nbv[edge[i][0]]);
+        du[bv_to_nbv[edge[i][0]]]++;
+        du[bv_to_nbv[edge[i][1]]]++;
+    }
 
-	vis[cur] = 1;
-	for (int i = 0; i < G[cur].size(); i++)
-	{
-		if (G[cur][i] == pre) continue;
-		path.push_back(G[cur][i]);
-		dfs_get_loop2(G[cur][i], cur, vis, G, path, loop_lst);
-		path.pop_back();
-	}
-	vis[cur] = 0;
+    for (int i = 0; i < bv.size(); ++i) {
+        if (!vis[i]) {
+            std::vector<int> path;
+            std::vector<std::vector<int>> loop_lst;
+            path.push_back(i);
+            boundary_loop_dfs(i, -1, vis, du, G, path, loop_lst);
+            for (auto &t : loop_lst) loop.push_back(t);
+        }
+    }
+
+    // update vertex id
+    for (int i = 0; i < loop.size(); ++i) {
+        for (int j = 0; j < loop[i].size(); ++j) {
+            loop[i][j] = bv[loop[i][j]];
+        }
+    }
 }
+void MESHIO::boundary_loop_dfs(int cur,
+                       int pre,
+                       std::vector<bool> &vis,
+                       std::vector<int> &du,
+                       std::vector<std::vector<int>> &G,
+                       std::vector<int> &path,
+                       std::vector<std::vector<int>> &loop_lst) {
+    if (vis[cur]) {
+        std::vector<int> tmp;
+        for (int i = path.size() - 2; i >= 0; i--) {
+            if (path[i] != cur) {
+                tmp.push_back(path[i]);
+            } else {
+                tmp.push_back(path[i]);
+                break;
+            }
+        }
+        if (tmp.size() > 1) {
+            loop_lst.push_back(tmp);
+            for (auto &t : tmp) du[t] -= 2;
+        }
+        return;
+    }
+
+    vis[cur] = true;
+    for (int i = 0; i < G[cur].size(); i++) {
+        if (G[cur][i] == pre || du[G[cur][i]] == 0) continue;
+        path.push_back(G[cur][i]);
+        boundary_loop_dfs(G[cur][i], cur, vis, du, G, path, loop_lst);
+        path.pop_back();
+    }
+};
+
+// void MESHIO::dfs_get_loop2(int cur, int pre, std::vector<bool>& vis, std::vector<std::vector<int>>& G, std::vector<int>& path, std::vector<std::vector<int>>& loop_lst)
+// {
+// 	if (vis[cur])
+// 	{
+// 		std::vector<int> tmp;
+// 		for (int i = path.size() - 2; i >= 0; i--)
+// 		{
+// 			if (path[i] != cur)
+// 			{
+// 				tmp.push_back(path[i]);
+// 			}
+// 			else
+// 			{
+// 				tmp.push_back(path[i]);
+// 				break;
+// 			}
+// 		}
+// 		loop_lst.push_back(tmp);
+// 		return;
+// 	}
+
+// 	vis[cur] = 1;
+// 	for (int i = 0; i < G[cur].size(); i++)
+// 	{
+// 		if (G[cur][i] == pre) continue;
+// 		path.push_back(G[cur][i]);
+// 		dfs_get_loop2(G[cur][i], cur, vis, G, path, loop_lst);
+// 		path.pop_back();
+// 	}
+// 	vis[cur] = 0;
+// }
 
 void MESHIO::boundary_loop_by_dfs2(Eigen::MatrixXd& V, Eigen::MatrixXi& F, Eigen::VectorXi& bnd)
 {
@@ -732,6 +805,7 @@ void MESHIO::boundary_loop_by_dfs2(Eigen::MatrixXd& V, Eigen::MatrixXi& F, Eigen
 	std::vector<std::vector<int>> G(V.rows(), std::vector<int>());
 	std::map<std::array<int, 2>, int> mp;
 	std::vector<bool> vis(V.rows(), 0);
+	std::vector<int> du(V.rows(), 0);
 	std::vector<std::vector<int>> loop_lst;
 	std::vector<int> path;
 	std::set<int> num_p_set;
@@ -754,6 +828,8 @@ void MESHIO::boundary_loop_by_dfs2(Eigen::MatrixXd& V, Eigen::MatrixXi& F, Eigen
 			G[iter->first[0]].push_back(iter->first[1]);
 			G[iter->first[1]].push_back(iter->first[0]);
 			// std::cout << iter->first[0] << " " << iter->first[1] << '\n';
+			du[iter->first[0]] ++;
+			du[iter->first[1]] ++;
 			num_p_set.insert(iter->first[0]);
 			num_p_set.insert(iter->first[1]);
 		}
@@ -761,7 +837,8 @@ void MESHIO::boundary_loop_by_dfs2(Eigen::MatrixXd& V, Eigen::MatrixXi& F, Eigen
 
 	int start = *num_p_set.begin();
 	path.push_back(start);
-	MESHIO::dfs_get_loop2(start, -1, vis, G, path, loop_lst);
+	// MESHIO::dfs_get_loop2(start, -1, vis, G, path, loop_lst);
+	MESHIO::boundary_loop_dfs(start, -1, vis, du, G, path, loop_lst);
 
 	for (int i = 0; i < loop_lst.size(); i++)
 	{
@@ -1066,3 +1143,4 @@ bool MESHIO::topoFillHole(Mesh& mesh)
 	mesh.Masks.resize(0, 0);
 	return true;
 }
+

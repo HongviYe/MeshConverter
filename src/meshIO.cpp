@@ -301,75 +301,148 @@ int MESHIO::readOBJ(std::string filename, Mesh &mesh) {
 }
 
 int MESHIO::writeVTK(std::string filename, const Mesh &mesh, std::string mark_pattern) {
-	auto& M = mesh.Masks;
-	auto& V = mesh.Vertex;
-	auto& T = mesh.Topo;
-    std::ofstream f(filename);
-    if(!f.is_open()) {
+    auto& M = mesh.Masks;
+    auto& V = mesh.Vertex;
+    auto& T = mesh.Topo;
+    FILE *f = fopen(filename.c_str(), "w");
+    if (!f) {
         std::cout << "Write VTK file failed. - " << filename << std::endl;
         return -1;
     }
     std::cout << "Writing mesh to - " << filename << std::endl;
-    f.precision(std::numeric_limits<double>::digits10 + 1);
-    f << "# vtk DataFile Version 2.0" << std::endl;
-    f << "TetWild Mesh" << std::endl;
-    f << "ASCII" << std::endl;
-    f << "DATASET UNSTRUCTURED_GRID" << std::endl;
-    f << "POINTS " << V.rows() << " double" << std::endl;
-    for(int i = 0; i < V.rows(); i++)
-        f << V(i, 0) << " " << V(i, 1) << " " << V(i, 2) << std::endl;
-    f << "CELLS " << T.rows() << " " << T.rows() * (T.cols() + 1) << std::endl;
-    for(int i = 0; i < T.rows(); i++) {
-        f << T.cols() << " ";
-        for(int j = 0; j < T.cols(); j++)
-            f <<  T(i, j) << " ";
-        f << std::endl;
+    fprintf(f, "# vtk DataFile Version 2.0\n");
+    fprintf(f, "TetWild Mesh\n");
+    fprintf(f, "ASCII\n");
+    fprintf(f, "DATASET UNSTRUCTURED_GRID\n");
+    fprintf(f, "POINTS %d double\n", V.rows());
+    for (int i = 0; i < V.rows(); i++) {
+        fprintf(f, "%.17g %.17g %.17g\n", V(i, 0), V(i, 1), V(i, 2));
     }
-    f << "CELL_TYPES " << T.rows() << std::endl;
+    fprintf(f, "CELLS %d %d\n", T.rows(), T.rows() * (T.cols() + 1));
+    for (int i = 0; i < T.rows(); i++) {
+        fprintf(f, "%d ", T.cols());
+        for (int j = 0; j < T.cols(); j++) {
+            fprintf(f, "%d ", T(i, j));
+        }
+        fprintf(f, "\n");
+    }
+    fprintf(f, "CELL_TYPES %d\n", T.rows());
     int cellType = 0;
-    if(T.cols() == 2)
+    if (T.cols() == 2) {
         cellType = 3;
-    else if(T.cols() == 3)
+    } else if (T.cols() == 3) {
         cellType = 5;
-    else if(T.cols() == 4)
+    } else if (T.cols() == 4) {
         cellType = 10;
-    for(int i = 0; i < T.rows(); i++)
-        f << cellType << std::endl;
-    if(M.rows() != T.rows()) {
-        f.close();
+    }
+    for (int i = 0; i < T.rows(); i++) {
+        fprintf(f, "%d\n", cellType);
+    }
+    if (M.rows() != T.rows()) {
+        fclose(f);
         return 1;
     }
-    f << "POINT_DATA " << V.rows() << std::endl;
-    f << "SCALARS point_id int 1" << std::endl;
-    f << "LOOKUP_TABLE default" << std::endl;
-    for(int i = 0; i < V.rows(); i++) {
-        f << i << endl;
+    fprintf(f, "POINT_DATA %d\n", V.rows());
+    fprintf(f, "SCALARS point_id int 1\n");
+    fprintf(f, "LOOKUP_TABLE default\n");
+    for (int i = 0; i < V.rows(); i++) {
+        fprintf(f, "%d\n", i);
     }
-    f << "CELL_DATA " << M.rows() << std::endl;
-    f << "SCALARS " << mark_pattern << " int " << M.cols() << std::endl;
-    f << "LOOKUP_TABLE default" << std::endl;
-    for(int i = 0; i < M.rows(); i++) {
-        for(int j = 0; j < M.cols(); j++)
-            f << M(i, j);
-        f << std::endl;
+    fprintf(f, "CELL_DATA %d\n", M.rows());
+    fprintf(f, "SCALARS %s int %d\n", mark_pattern.c_str(), M.cols());
+    fprintf(f, "LOOKUP_TABLE default\n");
+    for (int i = 0; i < M.rows(); i++) {
+        for (int j = 0; j < M.cols(); j++) {
+            fprintf(f, "%d", M(i, j));
+        }
+        fprintf(f, "\n");
     }
-    if(T.cols() == 3)
-    {
+    if (T.cols() == 3) {
         std::cout << "This have normal information.\n";
-        f << "NORMALS facet_normals double\n";
-        for(int i = 0; i < T.rows(); i++)
-        {
+        fprintf(f, "NORMALS facet_normals double\n");
+        for (int i = 0; i < T.rows(); i++) {
             Eigen::Vector3d ab = V.row(T(i, 1)) - V.row(T(i, 0));
             Eigen::Vector3d ac = V.row(T(i, 2)) - V.row(T(i, 0));
             Eigen::Vector3d t_nor = ab.cross(ac);
             t_nor.normalize();
-            f << t_nor.x() << " " << t_nor.y() << " " << t_nor.z() << std::endl;
+            fprintf(f, "%.17g %.17g %.17g\n", t_nor.x(), t_nor.y(), t_nor.z());
         }
     }
-    f << std::endl;
-    f.close();
+    fclose(f);
     return 1;
 }
+
+
+// int MESHIO::writeVTK(std::string filename, const Mesh &mesh, std::string mark_pattern) {
+// 	auto& M = mesh.Masks;
+// 	auto& V = mesh.Vertex;
+// 	auto& T = mesh.Topo;
+//     std::ofstream f(filename);
+//     if(!f.is_open()) {
+//         std::cout << "Write VTK file failed. - " << filename << std::endl;
+//         return -1;
+//     }
+//     std::cout << "Writing mesh to - " << filename << std::endl;
+//     f.precision(std::numeric_limits<double>::digits10 + 1);
+//     f << "# vtk DataFile Version 2.0" << std::endl;
+//     f << "TetWild Mesh" << std::endl;
+//     f << "ASCII" << std::endl;
+//     f << "DATASET UNSTRUCTURED_GRID" << std::endl;
+//     f << "POINTS " << V.rows() << " double" << std::endl;
+//     for(int i = 0; i < V.rows(); i++)
+//         f << V(i, 0) << " " << V(i, 1) << " " << V(i, 2) << std::endl;
+//     f << "CELLS " << T.rows() << " " << T.rows() * (T.cols() + 1) << std::endl;
+//     for(int i = 0; i < T.rows(); i++) {
+//         f << T.cols() << " ";
+//         for(int j = 0; j < T.cols(); j++)
+//             f <<  T(i, j) << " ";
+//         f << std::endl;
+//     }
+//     f << "CELL_TYPES " << T.rows() << std::endl;
+//     int cellType = 0;
+//     if(T.cols() == 2)
+//         cellType = 3;
+//     else if(T.cols() == 3)
+//         cellType = 5;
+//     else if(T.cols() == 4)
+//         cellType = 10;
+//     for(int i = 0; i < T.rows(); i++)
+//         f << cellType << std::endl;
+//     if(M.rows() != T.rows()) {
+//         f.close();
+//         return 1;
+//     }
+//     f << "POINT_DATA " << V.rows() << std::endl;
+//     f << "SCALARS point_id int 1" << std::endl;
+//     f << "LOOKUP_TABLE default" << std::endl;
+//     for(int i = 0; i < V.rows(); i++) {
+//         f << i << endl;
+//     }
+//     f << "CELL_DATA " << M.rows() << std::endl;
+//     f << "SCALARS " << mark_pattern << " int " << M.cols() << std::endl;
+//     f << "LOOKUP_TABLE default" << std::endl;
+//     for(int i = 0; i < M.rows(); i++) {
+//         for(int j = 0; j < M.cols(); j++)
+//             f << M(i, j);
+//         f << std::endl;
+//     }
+//     if(T.cols() == 3)
+//     {
+//         std::cout << "This have normal information.\n";
+//         f << "NORMALS facet_normals double\n";
+//         for(int i = 0; i < T.rows(); i++)
+//         {
+//             Eigen::Vector3d ab = V.row(T(i, 1)) - V.row(T(i, 0));
+//             Eigen::Vector3d ac = V.row(T(i, 2)) - V.row(T(i, 0));
+//             Eigen::Vector3d t_nor = ab.cross(ac);
+//             t_nor.normalize();
+//             f << t_nor.x() << " " << t_nor.y() << " " << t_nor.z() << std::endl;
+//         }
+//     }
+//     f << std::endl;
+//     f.close();
+//     return 1;
+// }
 
 int MESHIO::writeEpsVTK(std::string filename, const Mesh &mesh, int& cou,  std::map<int, double> &mpd, std::map<int, vector<int>> &mpi, std::string mark_pattern) {
 	auto& M = mesh.Masks;
@@ -989,4 +1062,41 @@ int MESHIO::writeStlIn(std::string filename, const Mesh &mesh)
         T(i, 1) + 1 << " " << T(i, 2) + 1 << " " << M(i, 0) + 1 << "\n";
     }
     f.close();
+}
+
+int MESHIO::writeLineVTK(std::string filename,
+                 Eigen::MatrixXd &V,
+                 std::vector<std::array<int, 2>> &Lines)
+{
+    FILE *vtkFile = fopen(filename.c_str(), "w");
+
+    if (vtkFile == nullptr)
+    {
+        perror("Error opening VTK file");
+        return 0;
+    }
+
+    // 写入VTK文件头部信息
+    fprintf(vtkFile, "# vtk DataFile Version 3.0\n");
+    fprintf(vtkFile, "VTK output\n");
+    fprintf(vtkFile, "ASCII\n");
+    fprintf(vtkFile, "DATASET POLYDATA\n");
+
+    // 写入顶点信息
+    fprintf(vtkFile, "POINTS %ld double\n", V.rows());
+    for (int i = 0; i < V.rows(); ++i)
+    {
+        fprintf(vtkFile, "%.6lf %.6lf %.6lf\n", V(i, 0), V(i, 1), V(i, 2));
+    }
+
+    // 写入线信息
+    fprintf(vtkFile, "LINES %ld %ld\n", Lines.size(), 3 * Lines.size());
+    for (const std::array<int, 2> &line : Lines)
+    {
+        fprintf(vtkFile, "2 %d %d\n", line[0], line[1]);
+    }
+
+    fclose(vtkFile);
+
+    return 1;
 }
