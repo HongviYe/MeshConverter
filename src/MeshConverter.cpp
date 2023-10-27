@@ -242,10 +242,15 @@ int main(int argc, char** argv)
 	{
 		MESHIO::removeDulplicatePoint(mesh.Vertex, mesh.Topo, DeleteDulPoint);
 	}
-
+	
+	if (remove_hanging_face) {
+		MESHIO::removeHangingFace(mesh);
+	}
+	
 	//********* HoleFill *********
 	if (fillhole) {
-		MESHIO::topoFillHole(mesh);
+		// MESHIO::topoFillHole(mesh);
+		MESHIO::dynamicFillHole(mesh);
 	}
 
 	//********* HoleFill *********
@@ -260,7 +265,7 @@ int main(int argc, char** argv)
 			SurfaceHoleFilling holefill(mesh);
 			holefill.init_hole_fill();
 			//if (fairing_k != 2 && fairing_k != 3)std::cout << "fairing_k must be 2 or 3.\n";
-			holefill.fair(fairing_k); // »ùÓÚ±ä·Ö·¨
+			holefill.fair(fairing_k); // ï¿½ï¿½ï¿½Ú±ï¿½Ö·ï¿½
 			mesh = holefill.get_all_mesh();
 		}
 		
@@ -273,9 +278,7 @@ int main(int argc, char** argv)
 		MESHIO::remesh(mesh);
 	}
 
-	if (remove_hanging_face) {
-		MESHIO::removeHangingFace(mesh);
-	}
+
 
 	//********* Create some box ********
 	if (createbox.size() != 0)

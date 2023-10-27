@@ -1135,7 +1135,7 @@ bool MESHIO::topoFillHole(Mesh& mesh)
 	Eigen::VectorXi bnd = Eigen::Map<Eigen::VectorXi>(primary_bnd->data(), primary_bnd->size());
 
 	// if there is a hole, fill it and erase additional vertices.
-	all_bnds.erase(primary_bnd);
+	// all_bnds.erase(primary_bnd);
 	Eigen::MatrixXi F_filled;
 	Eigen::MatrixXd& V_filled = V;
 	topological_hole_fill(F, bnd, all_bnds, F_filled, V_filled);
@@ -1144,3 +1144,194 @@ bool MESHIO::topoFillHole(Mesh& mesh)
 	return true;
 }
 
+
+bool MESHIO::dynamicFillHole(const Eigen::MatrixXd &V,const  Eigen::MatrixXi &T, const std::vector<std::set<int>>& point_to_tris, const std::vector<int> hole, std::vector<Eigen::Vector3i>& patches){
+
+	struct Weight
+	{
+		Weight(double angle = std::numeric_limits<double>::max(),
+					 double area = std::numeric_limits<double>::max())
+				: angle_(angle), area_(area)
+		{
+		}
+
+		Weight &operator=(const Weight &rhs)
+		{
+			if (this == &rhs) // 自赋值检查
+			{
+				return *this;
+			}
+			angle_ = rhs.angle_;
+			area_ = rhs.area_;
+			return *this;
+		}
+
+		Weight operator+(const Weight &rhs) const
+		{
+			return Weight(std::max(angle_, rhs.angle_), area_ + rhs.area_);
+		}
+
+		bool operator<(const Weight &rhs) const
+		{
+			return (angle_ < rhs.angle_ ||
+							(angle_ == rhs.angle_ && area_ < rhs.area_));
+		}
+
+		double angle_;
+		double area_;
+	};	
+	
+	int n = hole.size();
+	std::vector<std::vector<Weight>> weight(n, std::vector<Weight>(n, Weight()));
+	std::vector<std::vector<int>> res(n, std::vector<int>(n, 0));
+	Weight w;
+
+	auto TriangleArea = [](const Eigen::Vector3d &a,
+												 const Eigen::Vector3d &b,
+												 const Eigen::Vector3d &c)
+	{
+		Eigen::Vector3d u = b - a;
+		Eigen::Vector3d v = c - a;
+		double area = 0.5 * u.cross(v).norm();
+		return area;
+	};
+
+	auto computer_angle = [](const Eigen::Vector3d& n1, const Eigen::Vector3d& n2){
+		return 1.0 - n1.dot(n2);
+	};
+
+	auto computer_normal = [&](int a, int b, int c){
+		Eigen::Vector3d n1 = V.row(b) - V.row(a);
+		Eigen::Vector3d n2 = V.row(c) - V.row(a);
+		Eigen::Vector3d n3 = n1.cross(n2);
+		return n3.normalized();
+	};
+
+	auto computer_weight = [&](int i, int j, int k)
+	{
+		Eigen::Vector3d a = V.row(i);
+		Eigen::Vector3d b = V.row(j);
+		Eigen::Vector3d c = V.row(k);
+		double area = TriangleArea(a, b, c);
+		double angle = 0;
+		Eigen::Vector3d normal = computer_normal(i, j, k);
+		Eigen::Vector3d adj_nomal;
+
+		if(i + 1 == j){
+			std::vector<int> facets;
+			std::set_intersection(point_to_tris[hole[i]].begin(), point_to_tris[hole[i]].end(), point_to_tris[hole[j]].begin(), point_to_tris[hole[j]].end(), std::back_inserter(facets));
+			Eigen::Vector3i f = T.row(facets[0]);
+			adj_nomal = computer_normal(f[0], f[1], f[2]);
+		} else {
+			adj_nomal = computer_normal(hole[i], hole[res[i][j]], hole[j]);
+		}
+		angle = std::max(angle, computer_angle(normal, adj_nomal));
+
+		if(j + 1 == k){
+			std::vector<int> facets;
+			std::set_intersection(point_to_tris[hole[j]].begin(), point_to_tris[hole[j]].end(), point_to_tris[hole[k]].begin(), point_to_tris[hole[k]].end(), std::back_inserter(facets));
+			Eigen::Vector3i f = T.row(facets[0]);
+			adj_nomal = computer_normal(f[0], f[1], f[2]);
+		} else {
+			adj_nomal = computer_normal(hole[j], hole[res[j][k]], hole[k]);
+		}
+		angle = std::max(angle, computer_angle(normal, adj_nomal));
+
+		if(i == 0 && k == n - 1){
+			std::vector<int> facets;
+			std::set_intersection(point_to_tris[hole[i]].begin(), point_to_tris[hole[i]].end(), point_to_tris[hole[k]].begin(), point_to_tris[hole[k]].end(), std::back_inserter(facets));
+			Eigen::Vector3i f = T.row(facets[0]);
+			adj_nomal = computer_normal(f[0], f[1], f[2]);
+			angle = std::max(angle, computer_angle(normal, adj_nomal));
+		}
+		return Weight(angle, area);
+	};
+
+
+
+	for (int i = 0; i < n - 1; ++i)
+	{
+		weight[i][i + 1] = Weight(0, 0);
+	}
+	for (int i = 2; i < n; ++i)
+	{
+		for (int j = 0; j < n - i; ++j)/// [j, j + i]
+		{ 
+			Weight wmin;
+			int index_min = -1;
+			for (int k = j + 1; k < j + i; ++k)
+			{
+				w = weight[j][k] + weight[k][j + i] + computer_weight(j, k, j + i);
+				if(w < wmin){
+					wmin = w;
+					index_min = k;
+				}
+			}
+
+			weight[j][j + i] = wmin;
+			res[j][j + i] = index_min;
+		}
+	}
+
+	// add triangle to hole
+	std::queue<Eigen::Vector2i> que;
+	que.push(Eigen::Vector2i(0, n - 1));
+	while(!que.empty()){
+		Eigen::Vector2i front = que.front();
+		que.pop();
+		int start = front[0];
+		int end = front[1];
+		if(end - start < 2) continue;
+		int target = res[start][end];
+		patches.emplace_back(hole[start], hole[target], hole[end]);
+		que.push({start, target});
+		que.push({target, end});
+	}
+
+}
+
+bool MESHIO::dynamicFillHole(Mesh &mesh){
+
+	auto& V = mesh.Vertex;
+	auto& T = mesh.Topo;
+
+	std::vector<std::array<int, 2>> edge;
+	std::vector<std::vector<int>> loop;
+	std::map<std::pair<int, int>, int> mp_edge;
+	std::vector<std::set<int>> point_to_tris(V.rows());
+	for(int i = 0; i < 3; ++i){
+		std::cout << T(11877, i) << " " ;
+	}
+	std::cout << "\n";
+
+	for (int i = 0; i < mesh.Topo.rows(); ++i){
+		for(int j = 0; j < 3; ++j){
+			int a = mesh.Topo(i, j);
+			int b = mesh.Topo(i, (j + 1) % 3);
+			point_to_tris[a].insert(i);
+			if(a > b) std::swap(a, b);
+			mp_edge[std::make_pair(a, b)] ++ ;
+		}
+	}
+	for(auto& e : mp_edge){
+		if(e.second == 1){
+			edge.push_back(std::array<int, 2>{e.first.first, e.first.second});
+		}
+	}
+	get_boundary_loop(edge, loop);
+
+	std::vector<Eigen::Vector3i> all_patches;
+	for(int i = 0; i < loop.size(); ++i){
+		auto& hole = loop[i];
+		std::vector<Eigen::Vector3i> patches;
+		dynamicFillHole(V, T, point_to_tris, hole, patches);
+		all_patches.insert(all_patches.end(), patches.begin(), patches.end());
+	}
+
+	int origin_tri_num = T.rows();
+	T.conservativeResize(origin_tri_num + all_patches.size(), 3);
+	int index = 0;
+	for(int i = origin_tri_num; i < T.rows(); ++i){
+		T.row(i) = all_patches[index++];
+	}
+}
