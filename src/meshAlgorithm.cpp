@@ -1214,7 +1214,7 @@ bool MESHIO::dynamicFillHole(const Eigen::MatrixXd &V,const  Eigen::MatrixXi &T,
 		Eigen::Vector3d c = V.row(k);
 		double area = TriangleArea(a, b, c);
 		double angle = 0;
-		Eigen::Vector3d normal = computer_normal(i, j, k);
+		Eigen::Vector3d normal = computer_normal(hole[i], hole[j], hole[k]);
 		Eigen::Vector3d adj_nomal;
 
 		if(i + 1 == j){
@@ -1252,15 +1252,23 @@ bool MESHIO::dynamicFillHole(const Eigen::MatrixXd &V,const  Eigen::MatrixXi &T,
 	for (int i = 0; i < n - 1; ++i)
 	{
 		weight[i][i + 1] = Weight(0, 0);
+		res[i][i + 1] = -1;
 	}
 	for (int i = 2; i < n; ++i)
 	{
 		for (int j = 0; j < n - i; ++j)/// [j, j + i]
 		{ 
 			Weight wmin;
-			int index_min = -1;
+			int index_min = j + 1;
 			for (int k = j + 1; k < j + i; ++k)
 			{
+				/// Forbid area is zero.
+				Eigen::Vector3d a = V.row(hole[j]);
+				Eigen::Vector3d b = V.row(hole[k]);
+				Eigen::Vector3d c = V.row(hole[j + i]);
+				double area = TriangleArea(a, b, c);
+				if(area < 1e-5) continue;
+
 				w = weight[j][k] + weight[k][j + i] + computer_weight(j, k, j + i);
 				if(w < wmin){
 					wmin = w;
@@ -1294,31 +1302,60 @@ bool MESHIO::dynamicFillHole(Mesh &mesh){
 
 	auto& V = mesh.Vertex;
 	auto& T = mesh.Topo;
+	
+	Eigen::MatrixXi C;
+	igl::bfs_orient(T, T, C);
 
 	std::vector<std::array<int, 2>> edge;
 	std::vector<std::vector<int>> loop;
-	std::map<std::pair<int, int>, int> mp_edge;
 	std::vector<std::set<int>> point_to_tris(V.rows());
-	for(int i = 0; i < 3; ++i){
-		std::cout << T(11877, i) << " " ;
-	}
-	std::cout << "\n";
+
 
 	for (int i = 0; i < mesh.Topo.rows(); ++i){
 		for(int j = 0; j < 3; ++j){
 			int a = mesh.Topo(i, j);
-			int b = mesh.Topo(i, (j + 1) % 3);
 			point_to_tris[a].insert(i);
-			if(a > b) std::swap(a, b);
-			mp_edge[std::make_pair(a, b)] ++ ;
 		}
 	}
-	for(auto& e : mp_edge){
-		if(e.second == 1){
-			edge.push_back(std::array<int, 2>{e.first.first, e.first.second});
+	for (int i = 0; i < mesh.Topo.rows(); ++i){
+		for(int j = 0; j < 3; ++j){
+			int a = mesh.Topo(i, j);
+			int b = mesh.Topo(i, (j + 1) % 3);
+			std::vector<int> facets;
+			std::set_intersection(point_to_tris[a].begin(), point_to_tris[a].end(), point_to_tris[b].begin(), point_to_tris[b].end(), std::back_inserter(facets));
+			if(facets.size() == 1){
+				edge.push_back(std::array<int, 2>{a, b});
+			}
 		}
 	}
 	get_boundary_loop(edge, loop);
+
+	/// fix boundary orient
+	for(int i = 0; i < loop.size(); ++i){ 
+		int a = loop[i][0];
+		int b = loop[i][1];
+		std::vector<int> facets;
+		std::set_intersection(point_to_tris[a].begin(), point_to_tris[a].end(), point_to_tris[b].begin(), point_to_tris[b].end(), std::back_inserter(facets));
+		int f = 0;
+		for(int j = 0; j < 3; ++j){
+			int v1 = mesh.Topo(facets[0], j);
+			int v2 = mesh.Topo(facets[0], (j + 1) % 3);
+			if(v1 == b && v2 == a){
+				f = 1;
+				break;
+			}
+		}
+		if(!f){
+			std::reverse(loop[i].begin(), loop[i].end());
+		}
+	}
+
+	for(int i = 0; i < loop[0].size(); ++i){
+		std::cout << loop[0][i] << " ";
+	}
+	std::cout << "\n";
+
+	std::cout << "Hole number is " << loop.size() << "\n";
 
 	std::vector<Eigen::Vector3i> all_patches;
 	for(int i = 0; i < loop.size(); ++i){
