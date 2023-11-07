@@ -1295,7 +1295,7 @@ bool MESHIO::dynamicFillHole(const Eigen::MatrixXd &V,const  Eigen::MatrixXi &T,
 		que.push({start, target});
 		que.push({target, end});
 	}
-
+	return 0;
 }
 
 bool MESHIO::dynamicFillHole(Mesh &mesh){
@@ -1371,4 +1371,5 @@ bool MESHIO::dynamicFillHole(Mesh &mesh){
 	for(int i = origin_tri_num; i < T.rows(); ++i){
 		T.row(i) = all_patches[index++];
 	}
+	return 0;
 }
