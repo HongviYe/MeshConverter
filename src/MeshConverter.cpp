@@ -13,7 +13,7 @@ using namespace std;
 int main(int argc, char** argv)
 {
 	CLI::App app{ "MeshConveter" };
-	std::cout << "Program version: 2023.09.19" << std::endl;
+	std::cout << "Program version: 2023.11.22" << std::endl;
 	vector<string> input_filenames;
 	string input_filename_ex;
 	bool exportMESH = false;
@@ -231,17 +231,18 @@ int main(int argc, char** argv)
 		MESHALG::facet_classification(mesh.Vertex, mesh.Topo, reset_face_id_by_angle, mesh.Masks);
 	}
 
+	//********* Delete dulplicate point ********
+	if (DeleteDulPoint != -1)
+	{
+		MESHIO::removeDulplicatePoint(mesh.Vertex, mesh.Topo, DeleteDulPoint);
+	}
+
 	//********* repair ********
 	if (RepairZeroAera)
 	{
 		MESHIO::repair(mesh);
 	}
 
-	//********* Delete dulplicate point ********
-	if (DeleteDulPoint != -1)
-	{
-		MESHIO::removeDulplicatePoint(mesh.Vertex, mesh.Topo, DeleteDulPoint);
-	}
 	
 	if (remove_hanging_face) {
 		MESHIO::removeHangingFace(mesh);

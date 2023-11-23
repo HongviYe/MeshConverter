@@ -2,6 +2,7 @@
 #include "MeshOrient.h"
 
 #include <igl/bfs_orient.h>
+#include <igl/remove_unreferenced.h>
 #include <igl/map_vertices_to_circle.h>
 #include <igl/remove_duplicate_vertices.h>
 #include <igl/harmonic.h>
@@ -667,8 +668,13 @@ bool MESHIO::removeDulplicatePoint(Eigen::MatrixXd& V, Eigen::MatrixXi& F, doubl
 			F(i, j) = mpid[F_in(i, j)];
 		}
 	}
+	Eigen::VectorXi I;
+	auto V_old = V;
+	auto F_old = F;
+	igl::remove_unreferenced(V_old, F_old, V, F, I);
 
 	std::cout << "Remove " << V_in.rows() - V.rows() << " duplicate points\n";
+	std::cout << "Remove " << F_in.rows() - F.rows() << " facets\n";
 	return true;
 }
 void MESHIO::get_boundary_loop(std::vector<std::array<int, 2>> &edge,

@@ -357,6 +357,27 @@ void MESHIO::removeHangingFace(Mesh &mesh)
     return false;
   };
 
+  auto judge_sharp = [&](int tri_id)
+  {
+    int sharp_edge = 0;
+
+    for (int j = 0; j < 3; ++j)
+    {
+      int v1 = T(tri_id, j);
+      int v2 = T(tri_id, (j + 1) % 3);
+      std::vector<int> edge_facet;
+      std::set_intersection(point_to_triangle[v1].begin(), point_to_triangle[v1].end(), point_to_triangle[v2].begin(), point_to_triangle[v2].end(), std::back_inserter(edge_facet));
+      if (edge_facet.size() == 1){
+        sharp_edge++;
+      }
+    }
+    if (sharp_edge >= 2)
+    {
+      return true;
+    }
+    return false;
+  };
+
   std::vector<std::array<int, 2>> non_manifold_edge;
   std::map<std::pair<int, int>, bool> mp;
   for (int i = 0; i < T.rows(); i++)
@@ -450,7 +471,6 @@ void MESHIO::removeHangingFace(Mesh &mesh)
       {
         point_to_triangle[T(cur_t, i)].erase(cur_t);
       }
-      continue;
     }
     for (int i = 0; i < 3; ++i)
     {
@@ -458,10 +478,13 @@ void MESHIO::removeHangingFace(Mesh &mesh)
       int v2 = T(cur_t, (i + 1) % 3);
       std::vector<int> nxt_tri;
       std::set_intersection(point_to_triangle[v1].begin(), point_to_triangle[v1].end(), point_to_triangle[v2].begin(), point_to_triangle[v2].end(), std::back_inserter(nxt_tri));
+      if(removed_tri[cur_t] && nxt_tri.size() != 1){
+        continue;
+      }
 
       for (int j = 0; j < nxt_tri.size(); ++j)
       {
-        if (!vis[nxt_tri[j]] && removed_tri[nxt_tri[j]] == 0) {
+        if (!vis[nxt_tri[j]] && !removed_tri[nxt_tri[j]]) {
           //// check lock
           bool lock = false;
           for(int k = 0; k < 3; ++k){
@@ -485,6 +508,51 @@ void MESHIO::removeHangingFace(Mesh &mesh)
           vis[nxt_tri[j]] = true;
           que.push(nxt_tri[j]);
         }
+      }
+    }
+  }
+
+/// Remove sharp triangle
+  std::queue<int> que2;
+  std::vector<bool> vis2(T.rows(), false);
+  for(int i = 0; i < T.rows(); ++i){
+    if(i == 52113){
+      std::cout << "hret\n";
+    }
+    if(removed_tri[i]) continue;
+    if(judge_sharp(i)){
+      que2.push(i);
+      vis2[i] = true;
+      removed_tri[i] = true;
+      for (int j = 0; j < 3; ++j)
+      {
+        point_to_triangle[T(i, j)].erase(i);
+      }
+    }
+    while (!que2.empty())
+    {
+      int cur_t = que2.front();
+      que2.pop();
+      if (!removed_tri[cur_t] && judge_sharp(cur_t))
+      {
+        removed_tri[cur_t] = true;
+        for (int i = 0; i < 3; ++i)
+        {
+          point_to_triangle[T(cur_t, i)].erase(cur_t);
+        }
+      }
+      for (int i = 0; i < 3; ++i)
+      {
+        int v1 = T(cur_t, i);
+        int v2 = T(cur_t, (i + 1) % 3);
+        std::vector<int> nxt_tri;
+        std::set_intersection(point_to_triangle[v1].begin(), point_to_triangle[v1].end(), point_to_triangle[v2].begin(), point_to_triangle[v2].end(), std::back_inserter(nxt_tri));
+        if (removed_tri[cur_t] || vis[cur_t])
+        {
+          continue;
+        }
+        vis[cur_t] = 1;
+        que2.push(cur_t);
       }
     }
   }
@@ -547,6 +615,8 @@ void MESHIO::removeHangingFace(Mesh &mesh)
   }
 
   ////////// for body end.
+
+
 
   Eigen::MatrixXi newT;
   int newT_num = 0;

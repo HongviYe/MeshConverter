@@ -578,46 +578,49 @@ int MESHIO::readMESH(std::string filename, Mesh& mesh) {
     return 1;
 }
 
+#include <cstdio>
+
 int MESHIO::writeMESH(std::string filename, const Mesh &mesh) {
-	auto& M = mesh.Masks;
-	auto& V = mesh.Vertex;
-	auto& T = mesh.Topo;
-    std::ofstream f(filename);
-    if(!f.is_open()) {
+    auto& M = mesh.Masks;
+    auto& V = mesh.Vertex;
+    auto& T = mesh.Topo;
+    FILE* file = fopen(filename.c_str(), "w");
+    if(!file) {
         std::cout << "Write MESH file failed. - " << filename << std::endl;
         return -1;
     }
     std::cout << "Writing mesh to - " << filename << std::endl;
-    f.precision(std::numeric_limits<double>::digits10 + 1);
-    f << "MeshVersionFormatted 1" << std::endl;
-    f << "Dimension " << V.cols() << std::endl;
-    f << "Vertices" << std::endl;
-    f << V.rows() << std::endl;
+    fprintf(file, "MeshVersionFormatted 1\n");
+    fprintf(file, "Dimension %ld\n", V.cols());
+    fprintf(file, "Vertices\n");
+    fprintf(file, "%ld\n", V.rows());
     for(int i = 0; i < V.rows(); i++) {
         for(int j = 0; j < V.cols(); j++)
-            f << V(i, j) << " ";
-        f << i + 1 << std::endl;
+            fprintf(file, "%.15g ", V(i, j));
+        fprintf(file, "%d\n", i + 1);
     }
     if(T.cols() == 3)
-        f << "Triangles" << std::endl;
+        fprintf(file, "Triangles\n");
     else if(T.cols() == 4)
-        f << "Tetrahedra" << std::endl;
+        fprintf(file, "Tetrahedra\n");
     else {
         std::cout << "Unsupported format for .mesh file." << std::endl;
+        fclose(file);
         return -1;
     }
-    f << T.rows() << std::endl;
+    fprintf(file, "%ld\n", T.rows());
     for(int i = 0; i < T.rows(); i++) {
         for(int j = 0; j < T.cols(); j++)
-            f << T(i, j) + 1 << " ";
+            fprintf(file, "%d ", T(i, j) + 1);
         if(mesh.Masks.rows() == T.rows())
-            f << mesh.Masks(i, 0) << std::endl;
+            fprintf(file, "%d\n", M(i, 0));
         else
-            f << 0 << std::endl;
+            fprintf(file, "0\n");
     }
-    f.close();
+    fclose(file);
     return 1;
 }
+
 
 int MESHIO::writePLY(std::string filename, const Mesh &mesh) {
 	auto& M = mesh.Masks;
