@@ -174,6 +174,28 @@ bool MESHIO::createBox(std::vector<double> create_box, Mesh& mesh)
 	return true;
 }
 
+Eigen::Vector3d MESHIO::ave_normal(Mesh &mesh)
+{
+	Eigen::Vector3d res(0, 0, 0);
+	double all_area = 0.0;
+
+	for(int i = 0; i < mesh.Topo.rows(); ++i){
+		int a = mesh.Topo(i, 0);
+		int b = mesh.Topo(i, 1);
+		int c = mesh.Topo(i, 2);
+		Eigen::Vector3d ba = mesh.Vertex.row(b) - mesh.Vertex.row(a);
+		Eigen::Vector3d ca = mesh.Vertex.row(c) - mesh.Vertex.row(a);
+		Eigen::Vector3d normal = ba.cross(ca);
+		double area = normal.norm() * 0.5;
+		normal = normal.normalized();
+
+		res += normal * area;
+		all_area += area;
+	}
+
+	return res / all_area;
+}
+
 bool MESHIO::Normalize(Mesh& mesh) {
 	Eigen::Vector3d maxC(-std::numeric_limits<double>::max(), -std::numeric_limits<double>::max(), -std::numeric_limits<double>::max());
 	Eigen::Vector3d minC = -maxC;

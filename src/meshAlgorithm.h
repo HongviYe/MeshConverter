@@ -29,6 +29,7 @@ namespace MESHIO{
 	bool shuffleSurfaceid(int num, Mesh& mesh);
 	bool topoFillHole(Mesh& mesh);
 	bool Normalize(Mesh & mesh);
+	Eigen::Vector3d ave_normal(Mesh & mesh);
 	bool dynamicFillHole(Mesh &mesh);
 	bool dynamicFillHole(const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, const std::vector<std::set<int>> &point_to_tris, const std::vector<int> hole, std::vector<Eigen::Vector3i>& patches);
 

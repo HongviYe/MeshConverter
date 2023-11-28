@@ -34,6 +34,7 @@ int main(int argc, char** argv)
 	bool bremesh = false;
 	bool fillhole = false;
 	bool surfaceholefill = false;
+	bool avenormal = false;
 	
 	bool normalize = false;
 	bool remove_hanging_face = false;
@@ -82,6 +83,7 @@ int main(int argc, char** argv)
 	app.add_flag("--rm_duplicate_point", DeleteDulPoint, "Delete duplicate points; Format is : e.g. --rm_duplicate_point=1e-6.");
 	app.add_flag("--normalize", normalize, "normalize the mesh data to [0,1]");
 	app.add_flag("--rm_hanging", remove_hanging_face, "remove the hanging face.");
+	app.add_flag("--avenormal", avenormal, "cal ave normal.");
 
 	if (resetOritationFaceid)
 		resetOritation = false;
@@ -196,6 +198,14 @@ int main(int argc, char** argv)
 	if (normalize) {
 		MESHIO::Normalize(mesh);
 	}
+
+	
+	//********* Ave normal *********
+	if(avenormal){
+		auto avenormal = MESHIO::ave_normal(mesh);
+		std::cout << "Ave area normal is : " << avenormal.x() << " " << avenormal.y() << " " << avenormal.z() << "\n";
+	}
+
 
 	//********* Rotate *********
 	if (!rotateVec.empty())
