@@ -349,6 +349,13 @@ int MESHIO::writeVTK(std::string filename, const Mesh &mesh, std::string mark_pa
     for (int i = 0; i < V.rows(); i++) {
         fprintf(f, "%d\n", i);
     }
+    // fprintf(f, "CELL_DATA %d\n", T.rows());
+    // fprintf(f, "SCALARS %s int %d\n", mark_pattern.c_str(), 1);
+    // fprintf(f, "LOOKUP_TABLE default\n");
+    // for (int i = 0; i < T.rows(); i++) {
+    //         fprintf(f, "%d", i);
+    //     fprintf(f, "\n");
+    // }
     fprintf(f, "CELL_DATA %d\n", M.rows());
     fprintf(f, "SCALARS %s int %d\n", mark_pattern.c_str(), M.cols());
     fprintf(f, "LOOKUP_TABLE default\n");

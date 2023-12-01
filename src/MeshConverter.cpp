@@ -5,6 +5,7 @@
 #include "remesh.h"
 #include "SurfaceHoleFilling.h"
 #include <iostream>
+#include "igl/bfs_orient.h"
 
 #define _DEBUG_ 1
 
@@ -224,8 +225,12 @@ int main(int argc, char** argv)
 		MESHIO::addBox(boxVec, mesh);
 
 	//********* Regularize mesh oritation *********
-	if (resetOritation)
-		MESHIO::resetOrientation(mesh);
+	if (resetOritation){
+		auto T = mesh.Topo;
+		Eigen::MatrixXi C;
+		igl::bfs_orient(T, mesh.Topo, C);
+		// MESHIO::resetOrientation(mesh);
+	}
 	if (resetOritationFaceid)
 		MESHIO::resetOrientation(mesh, true,saveid);
 	if (checkOritation)
