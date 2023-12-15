@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <time.h>
+#include <array>
 
 //#include "IO/Legacy/vtkPolyDataReader.h"
 //#include "Common/Core/vtkSmartPointer.h"

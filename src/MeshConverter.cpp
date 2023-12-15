@@ -227,7 +227,7 @@ int main(int argc, char** argv)
 		MESHIO::reverseOrient(mesh.Topo);
 	}
 
-	if (mesh.Masks.size() == 0 || reset_face_id_by_angle>0) {
+	if (reset_face_id_by_angle>0) {
 		MESHALG::facet_classification(mesh.Vertex, mesh.Topo, reset_face_id_by_angle, mesh.Masks);
 	}
 
