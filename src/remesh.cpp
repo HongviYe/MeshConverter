@@ -339,47 +339,138 @@ void MESHIO::removeHangingFace(Mesh &mesh)
 
   auto judge_hanging = [&](int tri_id)
   {
-    int edge_1 = 0;
     int edge_3 = 0;
     for (int j = 0; j < 3; ++j)
     {
       int v1 = T(tri_id, j);
       int v2 = T(tri_id, (j + 1) % 3);
-      if (v1 > v2)
-        std::swap(v1, v2);
       std::vector<int> edge_facet;
       std::set_intersection(point_to_triangle[v1].begin(), point_to_triangle[v1].end(), point_to_triangle[v2].begin(), point_to_triangle[v2].end(), std::back_inserter(edge_facet));
 
-      if (edge_facet.size() == 1)
-        edge_1++;
       if (edge_facet.size() > 2)
         edge_3++;
     }
-    if (edge_1 > 0 && edge_3 > 0)
+    if (edge_3 > 0)
     {
       return true;
     }
     return false;
   };
 
-  std::queue<int> que;
-  std::vector<int> removed_tri(T.rows(), 0);
-  for (int i = 0; i < T.rows(); ++i)
+  auto judge_sharp = [&](int tri_id)
   {
-    if (judge_hanging(i))
+    int sharp_edge = 0;
+
+    for (int j = 0; j < 3; ++j)
     {
-      que.push(i);
-      removed_tri[i] = 1;
+      int v1 = T(tri_id, j);
+      int v2 = T(tri_id, (j + 1) % 3);
+      std::vector<int> edge_facet;
+      std::set_intersection(point_to_triangle[v1].begin(), point_to_triangle[v1].end(), point_to_triangle[v2].begin(), point_to_triangle[v2].end(), std::back_inserter(edge_facet));
+      if (edge_facet.size() == 1){
+        sharp_edge++;
+      }
+    }
+    if (sharp_edge >= 2)
+    {
+      return true;
+    }
+    return false;
+  };
+
+  std::vector<std::array<int, 2>> non_manifold_edge;
+  std::map<std::pair<int, int>, bool> mp;
+  for (int i = 0; i < T.rows(); i++)
+  {
+    for (int j = 0; j < 3; j++)
+    {
+      int v1 = T(i, j);
+      int v2 = T(i, (j + 1) % 3);
+      if(v1 > v2) std::swap(v1, v2);
+      if(mp.find(std::make_pair(v1, v2)) != mp.end()) continue;
+
+      std::vector<int> nxt_tri;
+      std::set_intersection(point_to_triangle[v1].begin(), point_to_triangle[v1].end(), point_to_triangle[v2].begin(), point_to_triangle[v2].end(), std::back_inserter(nxt_tri));
+      if (nxt_tri.size() != 2)
+      {
+        non_manifold_edge.emplace_back(std::array<int, 2>{v1, v2});
+        mp[std::make_pair(v1, v2)] = true;
+      }
     }
   }
 
+  std::vector<std::vector<int>> loops, warn_loop, ok_loop;
+  get_boundary_loop(non_manifold_edge, loops);
+  for (int i = 0; i < loops.size(); ++i)
+  {
+    int edge_1 = 0;
+    int edge_3 = 0;
+    for (int j = 0; j < loops[i].size(); ++j)
+    {
+      int v1 = loops[i][j];
+      int v2 = loops[i][(j + 1) % loops[i].size()];
+      std::vector<int> nxt_tri;
+      std::set_intersection(point_to_triangle[v1].begin(), point_to_triangle[v1].end(), point_to_triangle[v2].begin(), point_to_triangle[v2].end(), std::back_inserter(nxt_tri));
+
+      if (nxt_tri.size() == 1)
+        edge_1++;
+      if (nxt_tri.size() > 2)
+        edge_3++;
+    }
+    if (edge_1 > 0 && edge_3 > 0) {
+      warn_loop.push_back(loops[i]);
+    }
+    else {
+      ok_loop.push_back(loops[i]);
+    }
+  }
+
+  std::vector<std::array<int, 2>> lines;
+  for (int i = 0; i < ok_loop.size(); ++i)
+  {
+    for (int j = 0; j < ok_loop[i].size(); ++j)
+    {
+      int e1 = ok_loop[i][j];
+      int e2 = ok_loop[i][(j + 1) % ok_loop[i].size()];
+      lines.emplace_back(std::array<int, 2>{e1, e2});
+    }
+  }
+  writeLineVTK("./ok_loop.vtk", V, lines);
+
+  std::vector<int> lock_v(V.rows(), 0);
+  for(int i = 0; i < ok_loop.size(); ++i){
+    for(int j = 0; j < ok_loop[i].size(); ++j){
+      lock_v[ok_loop[i][j]] = 1;
+    }
+  }
+
+  std::queue<int> que;
+  std::vector<bool> vis(T.rows(), false);
+  for(int i = 0; i < warn_loop.size(); ++i){
+    for(int j = 0; j < warn_loop[i].size(); ++j){
+      int v1 = warn_loop[i][j];
+      int v2 = warn_loop[i][(j + 1) % warn_loop[i].size()];
+      std::vector<int> nxt_tri;
+      std::set_intersection(point_to_triangle[v1].begin(), point_to_triangle[v1].end(), point_to_triangle[v2].begin(), point_to_triangle[v2].end(), std::back_inserter(nxt_tri));
+      if(nxt_tri.size() == 1 && !vis[nxt_tri[0]]){
+        vis[nxt_tri[0]] = true;
+        que.push(nxt_tri[0]);
+      }
+    }
+  }
+
+
+  std::vector<bool> removed_tri(T.rows(), false);
   while (!que.empty())
   {
     int cur_t = que.front();
     que.pop();
-    for (int i = 0; i < 3; ++i)
-    {
-      point_to_triangle[T(cur_t, i)].erase(cur_t);
+    if(judge_hanging(cur_t)){
+      removed_tri[cur_t] = true;
+      for (int i = 0; i < 3; ++i)
+      {
+        point_to_triangle[T(cur_t, i)].erase(cur_t);
+      }
     }
     for (int i = 0; i < 3; ++i)
     {
@@ -387,174 +478,84 @@ void MESHIO::removeHangingFace(Mesh &mesh)
       int v2 = T(cur_t, (i + 1) % 3);
       std::vector<int> nxt_tri;
       std::set_intersection(point_to_triangle[v1].begin(), point_to_triangle[v1].end(), point_to_triangle[v2].begin(), point_to_triangle[v2].end(), std::back_inserter(nxt_tri));
+      if(removed_tri[cur_t] && nxt_tri.size() != 1){
+        continue;
+      }
+
       for (int j = 0; j < nxt_tri.size(); ++j)
       {
-        if (removed_tri[nxt_tri[j]] == 0 && judge_hanging(nxt_tri[j]))
-        {
+        if (!vis[nxt_tri[j]] && !removed_tri[nxt_tri[j]]) {
+          //// check lock
+          bool lock = false;
+          for(int k = 0; k < 3; ++k){
+            if(lock_v[ T(nxt_tri[j], k) ] == 1){
+              lock = true;
+              break;
+            }
+          }
+          if(lock) continue;
+
+          //// check hanging
+          if (judge_hanging(nxt_tri[j])) {
+            removed_tri[nxt_tri[j]] = true;
+            for (int k = 0; k < 3; ++k) {
+              point_to_triangle[T(nxt_tri[j], k)].erase(nxt_tri[j]);
+            }
+            continue;
+          }
+
+          ///// continue bfs:
+          vis[nxt_tri[j]] = true;
           que.push(nxt_tri[j]);
-          removed_tri[nxt_tri[j]] = 1;
         }
       }
     }
   }
 
-
-  /////////////////////////////
-
-  std::vector<std::array<int, 2>> non_manifold_edge;
-  for (int i = 0; i < T.rows(); i++)
-  {
-    if (removed_tri[i])
-      continue;
-    for (int j = 0; j < 3; j++)
+/// Remove sharp triangle
+  std::queue<int> que2;
+  std::vector<bool> vis2(T.rows(), false);
+  for(int i = 0; i < T.rows(); ++i){
+    if(i == 52113){
+      std::cout << "hret\n";
+    }
+    if(removed_tri[i]) continue;
+    if(judge_sharp(i)){
+      que2.push(i);
+      vis2[i] = true;
+      removed_tri[i] = true;
+      for (int j = 0; j < 3; ++j)
+      {
+        point_to_triangle[T(i, j)].erase(i);
+      }
+    }
+    while (!que2.empty())
     {
-      int v1 = T(i, j);
-      int v2 = T(i, (j + 1) % 3);
-      std::vector<int> nxt_tri;
-      std::set_intersection(point_to_triangle[v1].begin(), point_to_triangle[v1].end(), point_to_triangle[v2].begin(), point_to_triangle[v2].end(), std::back_inserter(nxt_tri));
-      if(nxt_tri.size() != 2){
-        non_manifold_edge.emplace_back(std::array<int, 2>{v1, v2});
+      int cur_t = que2.front();
+      que2.pop();
+      if (!removed_tri[cur_t] && judge_sharp(cur_t))
+      {
+        removed_tri[cur_t] = true;
+        for (int i = 0; i < 3; ++i)
+        {
+          point_to_triangle[T(cur_t, i)].erase(cur_t);
+        }
+      }
+      for (int i = 0; i < 3; ++i)
+      {
+        int v1 = T(cur_t, i);
+        int v2 = T(cur_t, (i + 1) % 3);
+        std::vector<int> nxt_tri;
+        std::set_intersection(point_to_triangle[v1].begin(), point_to_triangle[v1].end(), point_to_triangle[v2].begin(), point_to_triangle[v2].end(), std::back_inserter(nxt_tri));
+        if (removed_tri[cur_t] || vis[cur_t])
+        {
+          continue;
+        }
+        vis[cur_t] = 1;
+        que2.push(cur_t);
       }
     }
   }
-
-  std::vector<std::vector<int>> loops;
-  get_boundary_loop(non_manifold_edge, loops);
-  std::vector<int> warn_facet;
-  std::vector<int> tmp_edge;
-  for(int i = 0; i < loops.size(); ++i){
-    int edge_1 = 0;
-    int edge_3 = 0;
-    for(int j = 0; j < loops[i].size(); ++j){
-      int v1 = loops[i][j];
-      int v2 = loops[i][(j + 1) % loops[i].size()];
-      std::vector<int> nxt_tri;
-      std::set_intersection(point_to_triangle[v1].begin(), point_to_triangle[v1].end(), point_to_triangle[v2].begin(), point_to_triangle[v2].end(), std::back_inserter(nxt_tri));
-      tmp_edge.insert(tmp_edge.end(), nxt_tri.begin(), nxt_tri.end());
-
-      if(nxt_tri.size() == 1) edge_1 ++;
-      if(nxt_tri.size() > 2) edge_3 ++;
-    }
-    if(edge_1 > 0 && edge_3 > 0){
-      warn_facet.insert(warn_facet.end(), tmp_edge.begin(), tmp_edge.end());
-    }
-  }
-  for(int i = 0; i < warn_facet.size(); ++i){
-    removed_tri[warn_facet[i]] = true;
-    for (int j = 0; j < 3; ++j)
-    {
-      point_to_triangle[T(warn_facet[i], j)].erase(warn_facet[i]);
-    }
-  }
-
-  {
-    std::vector<std::array<int, 2>> non_manifold_edge;
-  for (int i = 0; i < T.rows(); i++)
-  {
-    if (removed_tri[i])
-      continue;
-    for (int j = 0; j < 3; j++)
-    {
-      int v1 = T(i, j);
-      int v2 = T(i, (j + 1) % 3);
-      std::vector<int> nxt_tri;
-      std::set_intersection(point_to_triangle[v1].begin(), point_to_triangle[v1].end(), point_to_triangle[v2].begin(), point_to_triangle[v2].end(), std::back_inserter(nxt_tri));
-      if(nxt_tri.size() != 2){
-        non_manifold_edge.emplace_back(std::array<int, 2>{v1, v2});
-      }
-    }
-  }
-
-  std::vector<std::vector<int>> loops;
-  get_boundary_loop(non_manifold_edge, loops);
-  std::vector<int> warn_facet;
-  std::vector<int> tmp_edge;
-  for(int i = 0; i < loops.size(); ++i){
-    int edge_1 = 0;
-    int edge_3 = 0;
-    for(int j = 0; j < loops[i].size(); ++j){
-      int v1 = loops[i][j];
-      int v2 = loops[i][(j + 1) % loops[i].size()];
-      std::vector<int> nxt_tri;
-      std::set_intersection(point_to_triangle[v1].begin(), point_to_triangle[v1].end(), point_to_triangle[v2].begin(), point_to_triangle[v2].end(), std::back_inserter(nxt_tri));
-      tmp_edge.insert(tmp_edge.end(), nxt_tri.begin(), nxt_tri.end());
-
-      if(nxt_tri.size() == 1) edge_1 ++;
-      if(nxt_tri.size() > 2) edge_3 ++;
-    }
-    if(edge_1 > 0 && edge_3 > 0){
-      warn_facet.insert(warn_facet.end(), tmp_edge.begin(), tmp_edge.end());
-    }
-  }
-  for(int i = 0; i < warn_facet.size(); ++i){
-    removed_tri[warn_facet[i]] = true;
-    for (int j = 0; j < 3; ++j)
-    {
-      point_to_triangle[T(warn_facet[i], j)].erase(warn_facet[i]);
-    }
-  }
-  }
-
-  // {
-  // std::vector<std::array<int, 2>> non_manifold_edge;
-  // for (int i = 0; i < T.rows(); i++)
-  // {
-  //   if (removed_tri[i])
-  //     continue;
-  //   for (int j = 0; j < 3; j++)
-  //   {
-  //     int v1 = T(i, j);
-  //     int v2 = T(i, (j + 1) % 3);
-  //     std::vector<int> nxt_tri;
-  //     std::set_intersection(point_to_triangle[v1].begin(), point_to_triangle[v1].end(), point_to_triangle[v2].begin(), point_to_triangle[v2].end(), std::back_inserter(nxt_tri));
-  //     if(nxt_tri.size() == 1){
-  //       non_manifold_edge.emplace_back(std::array<int, 2>{v1, v2});
-  //     }
-  //   }
-  // }
-
-  // std::map<int, int> mp_du;
-  // for(int i = 0; i < non_manifold_edge.size(); ++i){
-  //   mp_du[non_manifold_edge[i][0]]++;
-  //   mp_du[non_manifold_edge[i][1]]++;
-  // }
-  // for(auto& t : mp_du){
-  //   if(t.second > 2){
-  //     for(auto& t : point_to_triangle[t.first]){
-  //       removed_tri[] = true;
-  //     }
-  //   }
-  // }
-
-  // std::vector<std::vector<int>> loops;
-  // get_boundary_loop(non_manifold_edge, loops);
-  // std::vector<int> warn_facet;
-  // std::vector<int> tmp_edge;
-  // for(int i = 0; i < loops.size(); ++i){
-  //   int edge_1 = 0;
-  //   int edge_3 = 0;
-  //   for(int j = 0; j < loops[i].size(); ++j){
-  //     int v1 = loops[i][j];
-  //     int v2 = loops[i][(j + 1) % loops[i].size()];
-  //     std::vector<int> nxt_tri;
-  //     std::set_intersection(point_to_triangle[v1].begin(), point_to_triangle[v1].end(), point_to_triangle[v2].begin(), point_to_triangle[v2].end(), std::back_inserter(nxt_tri));
-  //     tmp_edge.insert(tmp_edge.end(), nxt_tri.begin(), nxt_tri.end());
-
-  //     if(nxt_tri.size() == 1) edge_1 ++;
-  //     if(nxt_tri.size() > 2) edge_3 ++;
-  //   }
-  //   if(edge_1 > 0 && edge_3 > 0){
-  //     warn_facet.insert(warn_facet.end(), tmp_edge.begin(), tmp_edge.end());
-  //   }
-  // }
-  // for(int i = 0; i < warn_facet.size(); ++i){
-  //   removed_tri[warn_facet[i]] = true;
-  //   for (int j = 0; j < 3; ++j)
-  //   {
-  //     point_to_triangle[T(warn_facet[i], j)].erase(warn_facet[i]);
-  //   }
-  // }
-  // }
 
   ///// for one body
   std::vector<int> tri_color(T.rows(), -1);
@@ -615,8 +616,15 @@ void MESHIO::removeHangingFace(Mesh &mesh)
 
   ////////// for body end.
 
+
+
   Eigen::MatrixXi newT;
-  int newT_num = std::count(removed_tri.begin(), removed_tri.end(), 0);
+  int newT_num = 0;
+  for(int i = 0; i < removed_tri.size(); ++i){
+    if(!removed_tri[i])
+      newT_num++;
+  }
+  std::cout << "Remove " << removed_tri.size() - newT_num << " hanging triangle.\n";
   newT.resize(newT_num, 3);
   int count = 0;
   for (int i = 0; i < T.rows(); ++i)
@@ -642,29 +650,27 @@ void MESHIO::removeHangingFace(Mesh &mesh)
         }
     }
 
-    int open_edge_num = 0;
     std::vector<std::array<int, 2>> open_edge;
     std::map<std::pair<int, int>, bool> mp_open_edge;
     for (auto &t : edge_to_facet) {
         if (t.second.size() == 1) {
             open_edge.push_back({{t.first.first, t.first.second}});
             mp_open_edge[std::make_pair(t.first.first, t.first.second)] = 1;
-            open_edge_num += 1;
         }
     }
     std::vector<std::vector<int>> loops;
     get_boundary_loop(open_edge, loops);
+
+    std::cout << "There have " << loops.size() << " holes\n";
+    int loop_edge_num = 0;
     for(int i = 0; i < loops.size(); ++i){
-      for(int j = 0; j < loops[i].size(); ++j){
-        int a = loops[i][j];
-        int b = loops[i][(j + 1) % loops[i].size()];
-        if(a > b) std::swap(a, b);
-        mp_open_edge[std::make_pair(a, b)] = 0;
-      }
+      loop_edge_num += loops[i].size();
+    }
+    if(loop_edge_num != open_edge.size()){
+      std::cout << "There are hanging facet.\n";
     }
 
     if (loops.size() > 0) {
-
         std::vector<std::array<int, 2>> lines;
         for(int i = 0; i < loops.size(); ++i){
             for(int j = 0; j < loops[i].size(); ++j){
@@ -677,54 +683,290 @@ void MESHIO::removeHangingFace(Mesh &mesh)
         writeLineVTK("./open_edge.vtk", V, open_edge);
     }
 }
-  // GEO::initialize();
-  // GEO::Mesh geomesh;
-  // geomesh.facets.create_triangles(T.rows());
-  // geomesh.vertices.create_vertices(V.rows());
-  // for (int i = 0; i < V.rows(); ++i)
-  // {
-  //   geomesh.vertices.point(i) = GEO::vec3(V(i, 0), V(i, 1), V(i, 2));
-  // }
 
-  // for (int i = 0; i < T.rows(); ++i)
-  // {
-  //   geomesh.facets.set_vertex(i, 0, T(i, 0));
-  //   geomesh.facets.set_vertex(i, 1, T(i, 1));
-  //   geomesh.facets.set_vertex(i, 2, T(i, 2));
-  // }
-  // geomesh.facets.connect();
-  // // geomesh.facets.compute_borders();
-  // GEO::CmdLine::import_arg_group("algo");
-  // // GEO::CmdLine::set_arg("algo::hole_filling", "ear_cut");
-  // // GEO::CmdLine::declare_arg(
-  // //           "algo:hole_filling", "loop_split",
-  // //           "Hole filling mode (loop_split, Nloop_split, ear_cut)");
-  // GEO::fill_holes(geomesh, std::numeric_limits<double>::max());
 
-  // size_t num_vertices = geomesh.vertices.nb();
-  // size_t num_faces = geomesh.facets.nb();
-
-  // V.resize(num_vertices, 3);
-  // T.resize(num_faces, 3); // 假设是三角面
-
-  // // 将顶点数据从geogram Mesh复制到Eigen矩阵
-  // for (int i = 0; i < num_vertices; ++i)
-  // {
-  //   const GEO::vec3& vertex = geomesh.vertices.point(i);
-  //   V(i, 0) = vertex.x;
-  //   V(i, 1) = vertex.y;
-  //   V(i, 2) = vertex.z;
-  // }
-
-  // // 将面数据从geogram Mesh复制到Eigen矩阵
-  // for (int i = 0; i < num_faces; ++i)
-  // {
-  //   for (int j = 0; j < 3; ++j)
-  //   {
-  //     T(i, j) = geomesh.facets.vertex(i, j);
-  //   }
-  // }
 }
+
+// void MESHIO::removeHangingFace(Mesh &mesh)
+// {
+//   std::cout << "trying to remove the hanging face" << std::endl;
+//   auto &T = mesh.Topo;
+//   auto &V = mesh.Vertex;
+
+//   std::vector<std::set<int>> point_to_triangle(V.rows());
+//   for (int i = 0; i < T.rows(); i++)
+//   {
+//     for (int j = 0; j < 3; j++)
+//     {
+//       point_to_triangle[T(i, j)].insert(i);
+//     }
+//   }
+
+//   auto judge_hanging = [&](int tri_id)
+//   {
+//     int edge_1 = 0;
+//     int edge_3 = 0;
+//     for (int j = 0; j < 3; ++j)
+//     {
+//       int v1 = T(tri_id, j);
+//       int v2 = T(tri_id, (j + 1) % 3);
+//       std::vector<int> edge_facet;
+//       std::set_intersection(point_to_triangle[v1].begin(), point_to_triangle[v1].end(), point_to_triangle[v2].begin(), point_to_triangle[v2].end(), std::back_inserter(edge_facet));
+
+//       if (edge_facet.size() == 1)
+//         edge_1++;
+//       if (edge_facet.size() > 2)
+//         edge_3++;
+//     }
+//     if (edge_1 > 0 && edge_3 > 0)
+//     {
+//       return true;
+//     }
+//     return false;
+//   };
+
+//   std::queue<int> que;
+//   std::vector<int> removed_tri(T.rows(), 0);
+//   for (int i = 0; i < T.rows(); ++i)
+//   {
+//     if (judge_hanging(i))
+//     {
+//       que.push(i);
+//       removed_tri[i] = 1;
+//     }
+//   }
+
+//   while (!que.empty())
+//   {
+//     int cur_t = que.front();
+//     que.pop();
+//     for (int i = 0; i < 3; ++i)
+//     {
+//       point_to_triangle[T(cur_t, i)].erase(cur_t);
+//     }
+//     for (int i = 0; i < 3; ++i)
+//     {
+//       int v1 = T(cur_t, i);
+//       int v2 = T(cur_t, (i + 1) % 3);
+//       std::vector<int> nxt_tri;
+//       std::set_intersection(point_to_triangle[v1].begin(), point_to_triangle[v1].end(), point_to_triangle[v2].begin(), point_to_triangle[v2].end(), std::back_inserter(nxt_tri));
+//       for (int j = 0; j < nxt_tri.size(); ++j)
+//       {
+//         if (removed_tri[nxt_tri[j]] == 0 && judge_hanging(nxt_tri[j]))
+//         {
+//           que.push(nxt_tri[j]);
+//           removed_tri[nxt_tri[j]] = 1;
+//         }
+//       }
+//     }
+//   }
+
+
+//   /////////////////////////////
+
+//   std::vector<std::array<int, 2>> non_manifold_edge;
+//   for (int i = 0; i < T.rows(); i++)
+//   {
+//     if (removed_tri[i])
+//       continue;
+//     for (int j = 0; j < 3; j++)
+//     {
+//       int v1 = T(i, j);
+//       int v2 = T(i, (j + 1) % 3);
+//       std::vector<int> nxt_tri;
+//       std::set_intersection(point_to_triangle[v1].begin(), point_to_triangle[v1].end(), point_to_triangle[v2].begin(), point_to_triangle[v2].end(), std::back_inserter(nxt_tri));
+//       if(nxt_tri.size() != 2){
+//         non_manifold_edge.emplace_back(std::array<int, 2>{v1, v2});
+//       }
+//     }
+//   }
+
+//   std::vector<std::vector<int>> loops;
+//   get_boundary_loop(non_manifold_edge, loops);
+//   std::vector<int> warn_facet;
+//   for(int i = 0; i < loops.size(); ++i){
+//     int edge_1 = 0;
+//     int edge_3 = 0;
+//     std::vector<int> tmp_edge;
+//     for(int j = 0; j < loops[i].size(); ++j){
+//       int v1 = loops[i][j];
+//       int v2 = loops[i][(j + 1) % loops[i].size()];
+//       std::vector<int> nxt_tri;
+//       std::set_intersection(point_to_triangle[v1].begin(), point_to_triangle[v1].end(), point_to_triangle[v2].begin(), point_to_triangle[v2].end(), std::back_inserter(nxt_tri));
+//       tmp_edge.insert(tmp_edge.end(), nxt_tri.begin(), nxt_tri.end());
+
+//       if(nxt_tri.size() == 1) edge_1 ++;
+//       if(nxt_tri.size() > 2) edge_3 ++;
+//     }
+//     if(edge_1 > 0 && edge_3 > 0){
+//       warn_facet.insert(warn_facet.end(), tmp_edge.begin(), tmp_edge.end());
+//     }
+//   }
+//   for(int i = 0; i < warn_facet.size(); ++i){
+//     removed_tri[warn_facet[i]] = true;
+//     for (int j = 0; j < 3; ++j)
+//     {
+//       point_to_triangle[T(warn_facet[i], j)].erase(warn_facet[i]);
+//     }
+//   }
+
+//   ///// for one body
+//   std::vector<int> tri_color(T.rows(), -1);
+//   int init_color = 0;
+//   for (int i = 0; i < T.rows(); ++i)
+//   {
+//     if (removed_tri[i] || tri_color[i] > -1)
+//       continue;
+//     std::queue<int> que;
+//     que.push(i);
+//     tri_color[i] = init_color;
+//     while (!que.empty())
+//     {
+//       int cur_t = que.front();
+//       que.pop();
+//       for (int i = 0; i < 3; ++i)
+//       {
+//         int v1 = T(cur_t, i);
+//         int v2 = T(cur_t, (i + 1) % 3);
+//         std::vector<int> nxt_tri;
+//         std::set_intersection(point_to_triangle[v1].begin(), point_to_triangle[v1].end(), point_to_triangle[v2].begin(), point_to_triangle[v2].end(), std::back_inserter(nxt_tri));
+//         for (int j = 0; j < nxt_tri.size(); ++j)
+//         {
+//           if (tri_color[nxt_tri[j]] == init_color)
+//             continue;
+//           que.push(nxt_tri[j]);
+//           tri_color[nxt_tri[j]] = init_color;
+//         }
+//       }
+//     }
+//     init_color++;
+//   }
+
+//   std::vector<int> color_num(init_color, 0);
+//   for (int i = 0; i < T.rows(); ++i)
+//   {
+//     if (removed_tri[i])
+//       continue;
+//     color_num[tri_color[i]]++;
+//   }
+//   int max_color = 0;
+//   int idx = 0;
+//   for (int i = 0; i < color_num.size(); ++i)
+//   {
+//     if (color_num[i] > max_color)
+//     {
+//       max_color = color_num[i];
+//       idx = i;
+//     }
+//   }
+//   for (int i = 0; i < T.rows(); ++i)
+//   {
+//     if (removed_tri[i])
+//       continue;
+//     if (tri_color[i] != idx)
+//       removed_tri[i] = true;
+//   }
+
+//   ////////// for body end.
+
+//   Eigen::MatrixXi newT;
+//   int newT_num = std::count(removed_tri.begin(), removed_tri.end(), 0);
+//   newT.resize(newT_num, 3);
+//   int count = 0;
+//   for (int i = 0; i < T.rows(); ++i)
+//   {
+//     if (removed_tri[i])
+//       continue;
+//     newT.row(count++) = T.row(i);
+//   }
+//   auto oldV = V;
+//   Eigen::VectorXi I;
+//   igl::remove_unreferenced(oldV, newT, V, T, I);
+
+
+// {
+//    std::map<std::pair<int, int>, std::set<int>>
+//         edge_to_facet;  // edge to facet
+//     for (int i = 0; i < T.rows(); i++) {
+//         for (int j = 0; j < 3; j++) {
+//             int v1 = T(i, j);
+//             int v2 = T(i, (j + 1) % 3);
+//             if (v1 > v2) std::swap(v1, v2);
+//             edge_to_facet[std::make_pair(v1, v2)].insert(i);
+//         }
+//     }
+
+//     std::vector<std::array<int, 2>> open_edge;
+//     std::map<std::pair<int, int>, bool> mp_open_edge;
+//     for (auto &t : edge_to_facet) {
+//         if (t.second.size() == 1) {
+//             open_edge.push_back({{t.first.first, t.first.second}});
+//             mp_open_edge[std::make_pair(t.first.first, t.first.second)] = 1;
+//         }
+//     }
+//     std::vector<std::vector<int>> loops;
+//     get_boundary_loop(open_edge, loops);
+//     if (loops.size() > 0) {
+//         std::vector<std::array<int, 2>> lines;
+//         for(int i = 0; i < loops.size(); ++i){
+//             for(int j = 0; j < loops[i].size(); ++j){
+//                 int e1 = loops[i][j];
+//                 int e2 = loops[i][(j + 1) % loops[i].size()];
+//                 lines.emplace_back(std::array<int, 2>{e1, e2});
+//             }
+//         }
+//         writeLineVTK("./open_boundary.vtk", V, lines);
+//         writeLineVTK("./open_edge.vtk", V, open_edge);
+//     }
+// }
+//   // GEO::initialize();
+//   // GEO::Mesh geomesh;
+//   // geomesh.facets.create_triangles(T.rows());
+//   // geomesh.vertices.create_vertices(V.rows());
+//   // for (int i = 0; i < V.rows(); ++i)
+//   // {
+//   //   geomesh.vertices.point(i) = GEO::vec3(V(i, 0), V(i, 1), V(i, 2));
+//   // }
+
+//   // for (int i = 0; i < T.rows(); ++i)
+//   // {
+//   //   geomesh.facets.set_vertex(i, 0, T(i, 0));
+//   //   geomesh.facets.set_vertex(i, 1, T(i, 1));
+//   //   geomesh.facets.set_vertex(i, 2, T(i, 2));
+//   // }
+//   // geomesh.facets.connect();
+//   // // geomesh.facets.compute_borders();
+//   // GEO::CmdLine::import_arg_group("algo");
+//   // // GEO::CmdLine::set_arg("algo::hole_filling", "ear_cut");
+//   // // GEO::CmdLine::declare_arg(
+//   // //           "algo:hole_filling", "loop_split",
+//   // //           "Hole filling mode (loop_split, Nloop_split, ear_cut)");
+//   // GEO::fill_holes(geomesh, std::numeric_limits<double>::max());
+
+//   // size_t num_vertices = geomesh.vertices.nb();
+//   // size_t num_faces = geomesh.facets.nb();
+
+//   // V.resize(num_vertices, 3);
+//   // T.resize(num_faces, 3); // 假设是三角面
+
+//   // // 将顶点数据从geogram Mesh复制到Eigen矩阵
+//   // for (int i = 0; i < num_vertices; ++i)
+//   // {
+//   //   const GEO::vec3& vertex = geomesh.vertices.point(i);
+//   //   V(i, 0) = vertex.x;
+//   //   V(i, 1) = vertex.y;
+//   //   V(i, 2) = vertex.z;
+//   // }
+
+//   // // 将面数据从geogram Mesh复制到Eigen矩阵
+//   // for (int i = 0; i < num_faces; ++i)
+//   // {
+//   //   for (int j = 0; j < 3; ++j)
+//   //   {
+//   //     T(i, j) = geomesh.facets.vertex(i, j);
+//   //   }
+//   // }
+// }
 
 void MESHIO::remesh(Mesh& mesh){
   polymesh::PolyMesh half_mesh;

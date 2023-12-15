@@ -5,6 +5,7 @@
 #include "remesh.h"
 #include "SurfaceHoleFilling.h"
 #include <iostream>
+#include "igl/bfs_orient.h"
 
 #define _DEBUG_ 1
 
@@ -13,7 +14,7 @@ using namespace std;
 int main(int argc, char** argv)
 {
 	CLI::App app{ "MeshConveter" };
-	std::cout << "Program version: 2023.09.19" << std::endl;
+	std::cout << "Program version: 2023.11.22" << std::endl;
 	vector<string> input_filenames;
 	string input_filename_ex;
 	bool exportMESH = false;
@@ -34,6 +35,7 @@ int main(int argc, char** argv)
 	bool bremesh = false;
 	bool fillhole = false;
 	bool surfaceholefill = false;
+	bool avenormal = false;
 	
 	bool normalize = false;
 	bool remove_hanging_face = false;
@@ -82,6 +84,7 @@ int main(int argc, char** argv)
 	app.add_flag("--rm_duplicate_point", DeleteDulPoint, "Delete duplicate points; Format is : e.g. --rm_duplicate_point=1e-6.");
 	app.add_flag("--normalize", normalize, "normalize the mesh data to [0,1]");
 	app.add_flag("--rm_hanging", remove_hanging_face, "remove the hanging face.");
+	app.add_flag("--avenormal", avenormal, "cal ave normal.");
 
 	if (resetOritationFaceid)
 		resetOritation = false;
@@ -197,6 +200,14 @@ int main(int argc, char** argv)
 		MESHIO::Normalize(mesh);
 	}
 
+	
+	//********* Ave normal *********
+	if(avenormal){
+		auto avenormal = MESHIO::ave_normal(mesh);
+		std::cout << "Ave area normal is : " << avenormal.x() << " " << avenormal.y() << " " << avenormal.z() << "\n";
+	}
+
+
 	//********* Rotate *********
 	if (!rotateVec.empty())
 		MESHIO::rotatePoint(rotateVec, mesh);
@@ -214,8 +225,12 @@ int main(int argc, char** argv)
 		MESHIO::addBox(boxVec, mesh);
 
 	//********* Regularize mesh oritation *********
-	if (resetOritation)
-		MESHIO::resetOrientation(mesh);
+	if (resetOritation){
+		auto T = mesh.Topo;
+		Eigen::MatrixXi C;
+		igl::bfs_orient(T, mesh.Topo, C);
+		// MESHIO::resetOrientation(mesh);
+	}
 	if (resetOritationFaceid)
 		MESHIO::resetOrientation(mesh, true,saveid);
 	if (checkOritation)
@@ -231,21 +246,27 @@ int main(int argc, char** argv)
 		MESHALG::facet_classification(mesh.Vertex, mesh.Topo, reset_face_id_by_angle, mesh.Masks);
 	}
 
-	//********* repair ********
-	if (RepairZeroAera)
-	{
-		MESHIO::repair(mesh);
-	}
-
 	//********* Delete dulplicate point ********
 	if (DeleteDulPoint != -1)
 	{
 		MESHIO::removeDulplicatePoint(mesh.Vertex, mesh.Topo, DeleteDulPoint);
 	}
 
+	//********* repair ********
+	if (RepairZeroAera)
+	{
+		MESHIO::repair(mesh);
+	}
+
+	
+	if (remove_hanging_face) {
+		MESHIO::removeHangingFace(mesh);
+	}
+	
 	//********* HoleFill *********
 	if (fillhole) {
-		MESHIO::topoFillHole(mesh);
+		// MESHIO::topoFillHole(mesh);
+		MESHIO::dynamicFillHole(mesh);
 	}
 
 	//********* HoleFill *********
@@ -260,7 +281,7 @@ int main(int argc, char** argv)
 			SurfaceHoleFilling holefill(mesh);
 			holefill.init_hole_fill();
 			//if (fairing_k != 2 && fairing_k != 3)std::cout << "fairing_k must be 2 or 3.\n";
-			holefill.fair(fairing_k); // »ùÓÚ±ä·Ö·¨
+			holefill.fair(fairing_k); // ï¿½ï¿½ï¿½Ú±ï¿½Ö·ï¿½
 			mesh = holefill.get_all_mesh();
 		}
 		
@@ -273,9 +294,7 @@ int main(int argc, char** argv)
 		MESHIO::remesh(mesh);
 	}
 
-	if (remove_hanging_face) {
-		MESHIO::removeHangingFace(mesh);
-	}
+
 
 	//********* Create some box ********
 	if (createbox.size() != 0)

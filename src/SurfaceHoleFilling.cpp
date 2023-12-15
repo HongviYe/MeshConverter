@@ -695,7 +695,7 @@ bool SurfaceHoleFilling::my_harmonic(
 	W.col(2)=z;
 	//std::cout<<W-V<<"\n";
 	//std::cout<<W<<std::endl<<"LU"<<std::endl;
-
+	return 0;
 }
 
 void SurfaceHoleFilling::init_hole_fill()
