@@ -25,6 +25,7 @@ int main(int argc, char** argv)
 	bool exportFacet = false;
 	bool exportOBJ = false;
 	bool exportStlIn = false;
+	bool exportSTL = false;
 	bool shuffleMark = false;
 	bool resetOritation = false;
 	bool checkOritation = false;
@@ -36,7 +37,7 @@ int main(int argc, char** argv)
 	bool fillhole = false;
 	bool surfaceholefill = false;
 	bool avenormal = false;
-	
+
 	bool normalize = false;
 	bool remove_hanging_face = false;
 	double DeleteDulPoint = -1;
@@ -60,6 +61,7 @@ int main(int argc, char** argv)
 	app.add_flag("-s", exportPLS, "Write mesh in PLS format.");
 	app.add_flag("-f", exportFacet, "Write mesh in facet format.");
 	app.add_flag("-o", exportOBJ, "Write mesh in OBJ format.");
+	app.add_flag("--stl", exportSTL, "Write mesh in STL format.");
 	app.add_flag("--stl_in", exportStlIn, "Write mesh in stl.in format.");
 	app.add_flag("--remesh", bremesh, "Remesh");
 	app.add_flag("--fillhole", fillhole, "Fill hole by topology");
@@ -200,9 +202,9 @@ int main(int argc, char** argv)
 		MESHIO::Normalize(mesh);
 	}
 
-	
+
 	//********* Ave normal *********
-	if(avenormal){
+	if (avenormal) {
 		auto avenormal = MESHIO::ave_normal(mesh);
 		std::cout << "Ave area normal is : " << avenormal.x() << " " << avenormal.y() << " " << avenormal.z() << "\n";
 	}
@@ -225,14 +227,14 @@ int main(int argc, char** argv)
 		MESHIO::addBox(boxVec, mesh);
 
 	//********* Regularize mesh oritation *********
-	if (resetOritation){
+	if (resetOritation) {
 		auto T = mesh.Topo;
 		Eigen::MatrixXi C;
 		igl::bfs_orient(T, mesh.Topo, C);
 		// MESHIO::resetOrientation(mesh);
 	}
 	if (resetOritationFaceid)
-		MESHIO::resetOrientation(mesh, true,saveid);
+		MESHIO::resetOrientation(mesh, true, saveid);
 	if (checkOritation)
 		MESHIO::checkOrientation(mesh);
 
@@ -242,7 +244,7 @@ int main(int argc, char** argv)
 		MESHIO::reverseOrient(mesh.Topo);
 	}
 
-	if (reset_face_id_by_angle>0) {
+	if (reset_face_id_by_angle > 0) {
 		MESHALG::facet_classification(mesh.Vertex, mesh.Topo, reset_face_id_by_angle, mesh.Masks);
 	}
 
@@ -258,11 +260,11 @@ int main(int argc, char** argv)
 		MESHIO::repair(mesh);
 	}
 
-	
+
 	if (remove_hanging_face) {
 		MESHIO::removeHangingFace(mesh);
 	}
-	
+
 	//********* HoleFill *********
 	if (fillhole) {
 		// MESHIO::topoFillHole(mesh);
@@ -271,12 +273,12 @@ int main(int argc, char** argv)
 
 	//********* HoleFill *********
 	if (surfaceholefill) {
-		if (fairing_k <2)
+		if (fairing_k < 2)
 		{
 			std::cout << "Fairing_k is error!Fairing_k at least be 2\n";
 			return 0;
 		}
-		else 
+		else
 		{
 			SurfaceHoleFilling holefill(mesh);
 			holefill.init_hole_fill();
@@ -284,7 +286,7 @@ int main(int argc, char** argv)
 			holefill.fair(fairing_k); // ���ڱ�ַ�
 			mesh = holefill.get_all_mesh();
 		}
-		
+
 
 	}
 
@@ -352,6 +354,11 @@ int main(int argc, char** argv)
 	{
 		string output_filename = input_filename.substr(0, input_dotpos) + suffix + "_stl.in";
 		MESHIO::writeStlIn(output_filename, mesh);
+	}
+	if (exportSTL)
+	{	
+		string output_filename = input_filename.substr(0, input_dotpos) + suffix + ".o.stl";
+		MESHIO::writeSTL(output_filename, mesh);
 	}
 
 	cout << "Write " << mesh.Vertex.rows() << " points." << endl;

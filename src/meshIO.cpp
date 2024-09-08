@@ -959,6 +959,44 @@ int MESHIO::writeOBJ(string filename, const Mesh &mesh) {
     return 1;
 }
 
+int MESHIO::writeSTL(std::string filename, const Mesh& mesh) {
+    std::ofstream stlFile(filename);
+
+    if (!stlFile.is_open()) {
+        std::cerr << "Error: Unable to open file." << std::endl;
+        return -1;
+    }
+
+    stlFile << "solid mesh\n";
+
+    for (int i = 0; i < mesh.Topo.rows(); ++i) {
+        // 获取每个面的顶点索引
+        int idx1 = mesh.Topo(i, 0);
+        int idx2 = mesh.Topo(i, 1);
+        int idx3 = mesh.Topo(i, 2);
+
+        // 从Vertex矩阵中提取顶点坐标
+        Eigen::Vector3d v1 = mesh.Vertex.row(idx1);
+        Eigen::Vector3d v2 = mesh.Vertex.row(idx2);
+        Eigen::Vector3d v3 = mesh.Vertex.row(idx3);
+
+        // 计算法线（如果f_normal未提供或需要自行计算）
+        Eigen::Vector3d normal = (v2 - v1).cross(v3 - v1).normalized();
+
+        stlFile << "facet normal " << normal.x() << " " << normal.y() << " " << normal.z() << "\n";
+        stlFile << "    outer loop\n";
+        stlFile << "        vertex " << v1.x() << " " << v1.y() << " " << v1.z() << "\n";
+        stlFile << "        vertex " << v2.x() << " " << v2.y() << " " << v2.z() << "\n";
+        stlFile << "        vertex " << v3.x() << " " << v3.y() << " " << v3.z() << "\n";
+        stlFile << "    endloop\n";
+        stlFile << "endfacet\n";
+    }
+
+    stlFile << "endsolid mesh\n";
+    stlFile.close();
+    return 0;
+}
+
 int MESHIO::readTetgen(string nodefilename, string elefilename, Mesh &mesh) {
     auto& T = mesh.Topo;
     auto& V = mesh.Vertex;
