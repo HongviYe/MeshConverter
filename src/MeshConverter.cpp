@@ -10,6 +10,7 @@
 #define _DEBUG_ 1
 
 using namespace std;
+using std::cout;
 
 int main(int argc, char** argv)
 {
@@ -123,6 +124,8 @@ int main(int argc, char** argv)
 		MESHIO::readOBJ(input_filename, mesh);
 	else if (input_postfix == "facet")
 		MESHIO::readFacet(input_filename, mesh);
+	else if (input_postfix == "stl")
+		MESHIO::readSTL(input_filename, mesh);
 	else if (input_postfix == "node" || input_postfix == "ele" || input_postfix == "face")
 	{
 		string nodefilename = "";
@@ -141,7 +144,7 @@ int main(int argc, char** argv)
 		}
 		if (nodefilename.empty())
 		{
-			cout << "Node file is required." << endl;
+			std::cout << "Node file is required." << endl;
 		}
 		if (!elemfilename.empty())
 		{
