@@ -32,7 +32,7 @@ namespace MESHIO{
 	Eigen::Vector3d ave_normal(Mesh & mesh);
 	bool dynamicFillHole(Mesh &mesh);
 	bool dynamicFillHole(const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, const std::vector<std::set<int>> &point_to_tris, const std::vector<int> hole, std::vector<Eigen::Vector3i>& patches);
-
+	bool scale(Mesh& mesh,double factor);
 	// called by the algorithm above.
 	// void dfs_get_loop2(
 	// int cur, int pre,

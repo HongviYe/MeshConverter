@@ -43,6 +43,7 @@ int main(int argc, char** argv)
 	bool remove_hanging_face = false;
 	double DeleteDulPoint = -1;
 	double reset_face_id_by_angle = -1;
+	double scale_factor = 1;
 	int reparam_way = -1;
 	int shuffle_num = 1;
 	int fairing_k = -1;
@@ -88,7 +89,7 @@ int main(int argc, char** argv)
 	app.add_flag("--normalize", normalize, "normalize the mesh data to [0,1]");
 	app.add_flag("--rm_hanging", remove_hanging_face, "remove the hanging face.");
 	app.add_flag("--avenormal", avenormal, "cal ave normal.");
-
+	app.add_flag("--scale_factor", scale_factor, "Controls the scaling of grid coordinates. A value greater than 1 will enlarge the grid, while a value less than 1 will shrink it.");
 	if (resetOritationFaceid)
 		resetOritation = false;
 
@@ -317,6 +318,10 @@ int main(int argc, char** argv)
 		MESHIO::removeBox(mesh);
 	}
 	//********* export ********
+
+	if (std::abs(scale_factor - 1) > 1e-8) {
+		MESHIO::scale(mesh, scale_factor);
+	}
 
 	if (exportVTK)
 	{

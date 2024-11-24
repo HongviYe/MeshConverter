@@ -288,6 +288,10 @@ bool MESHIO::removeBox(Mesh& mesh)
 
 	return true;
 }
+bool MESHIO::scale(Mesh& mesh, double factor)
+{
+	mesh.Vertex = mesh.Vertex * factor;
+}
 
 /**
  * Add bounding box.
