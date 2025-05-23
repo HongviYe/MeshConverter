@@ -89,7 +89,7 @@ int main(int argc, char** argv)
 	app.add_flag("--normalize", normalize, "normalize the mesh data to [0,1]");
 	app.add_flag("--rm_hanging", remove_hanging_face, "remove the hanging face.");
 	app.add_flag("--avenormal", avenormal, "cal ave normal.");
-	app.add_flag("--scale_factor", scale_factor, "Controls the scaling of grid coordinates. A value greater than 1 will enlarge the grid, while a value less than 1 will shrink it.");
+	app.add_option("--scale_factor", scale_factor, "Controls the scaling of grid coordinates. A value greater than 1 will enlarge the grid, while a value less than 1 will shrink it.");
 	if (resetOritationFaceid)
 		resetOritation = false;
 
