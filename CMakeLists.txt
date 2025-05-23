@@ -114,17 +114,13 @@ endif()
 
 # 安装配置
 if(hasParent)
-<<<<<<< HEAD
   set(bin_dest ${hasParent}/bin)
   install(TARGETS MeshConverter DESTINATION "${bin_dest}")
 endif()
 
 # 添加assert包含以修复编译错误
+if(MSVC)
+else()
 target_compile_options(MeshConverter PRIVATE -include cassert)
-=======
-set(bin_dest ${hasParent}/bin)
-add_subdirectory(src/MeshOrient)
-install(TARGETS ${target_bin} DESTINATION "${bin_dest}")
-endif() 
-target_compile_options(MeshConverter PRIVATE -include cassert)
->>>>>>> github/master
+endif()
+
