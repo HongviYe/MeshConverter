@@ -1,5 +1,4 @@
 #include "meshAlgorithm.h"
-#include "MeshOrient.h"
 
 #include <igl/bfs_orient.h>
 #include <igl/remove_unreferenced.h>
@@ -291,6 +290,7 @@ bool MESHIO::removeBox(Mesh& mesh)
 bool MESHIO::scale(Mesh& mesh, double factor)
 {
 	mesh.Vertex = mesh.Vertex * factor;
+	return true;
 }
 
 /**
@@ -542,7 +542,7 @@ void MESHIO::checkOrientation(Mesh& mesh) {
 	//[](vector<int>& a,vector<int>& b) {}
 	vector<vector<int>>  facet_list_copy = facet_list;
 	vector<int> block_mark;
-	TIGER::resetOrientation(point_list, facet_list, block_mark);
+//	TIGER::resetOrientation(point_list, facet_list, block_mark);
 
 	std::set<vector<int>> qs;
 	for (auto i : facet_list) {
@@ -587,7 +587,7 @@ bool MESHIO::resetOrientation(Mesh& mesh, bool reset_mask,std::vector<int> savei
 		}
 	}
 	vector<int> block_mark;
-	TIGER::resetOrientation(point_list, facet_list, block_mark);
+//	TIGER::resetOrientation(point_list, facet_list, block_mark);
 	for (int i = 0; i < mesh.Vertex.rows(); i++) {
 		for (int j = 0; j < mesh.Vertex.cols(); j++) {
 			mesh.Vertex(i, j) = point_list[i][j];

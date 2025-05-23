@@ -74,8 +74,6 @@ include_directories(${EXTERNAL_DIR}/VTK)
 include_directories(${EXTERNAL_DIR}/Common/Core)
 include_directories(./src/MeshOrient)
 add_executable(MeshConverter ${SOURCES})
-add_subdirectory(src/MeshOrient)
-target_link_libraries(MeshConverter MeshOrient)
 
 if(USE_GEOGRAM)
 target_link_libraries(MeshConverter geogram)
