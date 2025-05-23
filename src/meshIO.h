@@ -5,7 +5,8 @@
 #include <map>
 #include <string>
 #include <vector>
-
+#undef min
+#undef max
 #define DEBUG_INFO() printf("File:%s, Line:%d, Function:%s\n", __FILE__, __LINE__ , __FUNCTION__)
 
 #ifndef M_PI

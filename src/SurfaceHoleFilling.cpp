@@ -1,21 +1,25 @@
-#include "SurfaceHoleFilling.h"
-#include "meshIO.h"
-#include "SurfaceRemesh.h"
+
+#include "Eigen/Dense"
+#include "Eigen/Sparse"
+#include "Eigen/Geometry"
 
 #include "igl/boundary_loop.h"
 #include "igl/cat.h"
 #include "igl/slice.h"
 #include "igl/upsample.h"
-#include "igl/exact_geodesic.h"
+//#include "igl/exact_geodesic.h"
 #include "igl/all_pairs_distances.h"
 #include "igl/per_vertex_normals.h"
 #include "igl/cotmatrix.h"
 #include "igl/grad.h"
 #include "igl/harmonic.h"
 
-#include "Eigen/Dense"
-#include "Eigen/Sparse"
-#include "Eigen/Geometry"
+#include "SurfaceHoleFilling.h"
+#include "meshIO.h"
+#include "SurfaceRemesh.h"
+
+
+
 #include <map>
 #include <array>
 

@@ -66,7 +66,7 @@ endif()
 
 
 
-include_directories(${EXTERNAL_DIR}/cli11)
+include_directories(${EXTERNAL_DIR}/cli11/include/CLI)
 include_directories(./src)
 include_directories(${EIGEN_BASE})
 include_directories(${IGL_BASE}/include)

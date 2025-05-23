@@ -1,5 +1,3 @@
-#include "meshAlgorithm.h"
-
 #include <igl/bfs_orient.h>
 #include <igl/remove_unreferenced.h>
 #include <igl/map_vertices_to_circle.h>
@@ -22,7 +20,9 @@
 #include <iostream>
 #include <set>
 #include <array>
-
+#include "meshAlgorithm.h"
+#undef min
+#undef max
 using namespace std;
 
 /**
@@ -945,7 +945,7 @@ bool MESHIO::buildTuttleParameter(Eigen::MatrixXd& V_3d, Eigen::MatrixXi& T_3d, 
 	minn_size = sqrt(minn_size);
 	Eigen::MatrixXd tmpV = V_3d;
 	Eigen::MatrixXi tmpT = T_3d;
-	Eigen::MatrixXi SVI, SVJ;
+	Eigen::VectorXi SVI, SVJ;
 	igl::remove_duplicate_vertices(tmpV, tmpT, minn_size / 1000.0, V_3d, SVI, SVJ, T_3d);
 
 	// removeDulplicatePoint(V_3d, T_3d, minn_size / 1000.0);
@@ -1038,7 +1038,7 @@ bool MESHIO::buildHarmonicParameter(Eigen::MatrixXd& V_3d, Eigen::MatrixXi& T_3d
 	minn_size = sqrt(minn_size);
 	Eigen::MatrixXd tmpV = V_3d;
 	Eigen::MatrixXi tmpT = T_3d;
-	Eigen::MatrixXi SVI, SVJ;
+	Eigen::VectorXi SVI, SVJ;
 	igl::remove_duplicate_vertices(tmpV, tmpT, minn_size / 1000.0, V_3d, SVI, SVJ, T_3d);
 
 	boundary_loop_by_dfs2(V_3d, T_3d, bnd); // mine

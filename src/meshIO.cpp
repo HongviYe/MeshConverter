@@ -1,5 +1,4 @@
-#include "meshIO.h"
-#include "stl_reader.h"
+
 #include <algorithm>
 #include <iostream>
 #include <fstream>
@@ -7,14 +6,19 @@
 #include <array>
 
 #include "igl/readSTL.h"
-#include "igl/remove_duplicates.h"
+#include "igl/remove_duplicate_vertices.h"
+
+#include "meshIO.h"
+#include "stl_reader.h"
+
 
 //#include "IO/Legacy/vtkPolyDataReader.h"
 //#include "Common/Core/vtkSmartPointer.h"
 //#include "Common/DataModel/vtkPolyData.h"
 //#include "IO/Legacy/vtkUnstructuredGridReader.h"
 //#include "IO/Legacy/vtkPolyDataWriter.h"
-
+#undef min
+#undef max
 #define BUFFER_LENGTH 256
 
 using namespace std;
@@ -1062,9 +1066,11 @@ int MESHIO::readTetgen(string nodefilename, string elefilename, Mesh &mesh) {
 int MESHIO::readSTL(std::string input_filename, Mesh &mesh){
     Eigen::MatrixXd V,N,NV;
     Eigen::MatrixXi F, NF;
+    Eigen::VectorXi SVI, SVJ;
     Eigen::VectorXi I;
-    igl::readSTL(input_filename, V, F, N);
-    igl::remove_duplicates(V, F, NV, NF, I,1e-10);
+    std::ifstream fstr(input_filename);
+    igl::readSTL(fstr, V, F, N);
+    igl::remove_duplicate_vertices(V, F, 1e-10, NV,SVI,SVJ, NF);
     mesh.Vertex = NV;
     mesh.Topo = F;
     return 0;
