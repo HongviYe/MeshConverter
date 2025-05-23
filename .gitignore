@@ -8,10 +8,6 @@ build/
 test.cpp
 
 # External
-/extern/.cache
-/extern/eigen
-/extern/meshorient
-/extern/libigl
 
 # Test
 /test
