@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <igl/bfs_orient.h>
 #include <igl/remove_unreferenced.h>
 #include <igl/map_vertices_to_circle.h>

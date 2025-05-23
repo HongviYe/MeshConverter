@@ -1,6 +1,7 @@
 # Build
 *build*/*
 build/
+win_build/
 .idea/*
 .vscode/
 /data

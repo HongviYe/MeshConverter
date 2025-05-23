@@ -1,4 +1,7 @@
 
+#include <assert.h>
+
+
 #include "Eigen/Dense"
 #include "Eigen/Sparse"
 #include "Eigen/Geometry"
@@ -17,7 +20,6 @@
 #include "SurfaceHoleFilling.h"
 #include "meshIO.h"
 #include "SurfaceRemesh.h"
-
 
 
 #include <map>

@@ -5,13 +5,6 @@ project(MeshConverter LANGUAGES CXX)
 # 设置模块路径
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-
-# options
-option(MESHORIENT_BUILD_EXECUTABLE "Build executable." OFF)
-option(MESHORIENT_DOWNLOAD "Download extern dependent library." OFF)
-option(USE_GEOGRAM "Download extern dependent library." OFF)
-
-
 # 启用C++11标准
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -85,9 +78,6 @@ if(hasParent)
   set(EIGEN_BASE ${EXTERNAL_DIR}/eigen)
   set(IGL_BASE ${EXTERNAL_DIR}/libigl)
   message(STATUS "Include path: ${EXTERNAL_DIR}/eigen")
-  
-  # 添加子目录
-  add_subdirectory(src/MeshOrient)
 endif()
 
 # 使用现代target_include_directories替代旧方法
@@ -103,7 +93,6 @@ target_include_directories(MeshConverter SYSTEM PRIVATE  # SYSTEM减少编译警
 
 target_include_directories(MeshConverter PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/MeshOrient
 )
 
 # 链接Geogram库(如果启用)
@@ -112,11 +101,7 @@ if(USE_GEOGRAM)
   target_compile_definitions(MeshConverter PUBLIC USE_GEOGRAM)
 endif()
 
-# 安装配置
-if(hasParent)
-  set(bin_dest ${hasParent}/bin)
-  install(TARGETS MeshConverter DESTINATION "${bin_dest}")
-endif()
+
 
 # 添加assert包含以修复编译错误
 if(MSVC)
@@ -124,3 +109,10 @@ else()
 target_compile_options(MeshConverter PRIVATE -include cassert)
 endif()
 
+
+
+# 安装配置
+if(hasParent)
+  set(bin_dest ${hasParent}/bin)
+  install(TARGETS MeshConverter DESTINATION "${bin_dest}")
+endif()
