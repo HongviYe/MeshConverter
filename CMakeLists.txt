@@ -5,8 +5,15 @@ project(MeshConverter LANGUAGES CXX)
 # 设置模块路径
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
+
+# options
+option(MESHORIENT_BUILD_EXECUTABLE "Build executable." OFF)
+option(MESHORIENT_DOWNLOAD "Download extern dependent library." OFF)
+option(USE_GEOGRAM "Download extern dependent library." OFF)
+
+
 # 启用C++11标准
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)  # 禁用编译器特定扩展
 
@@ -107,9 +114,17 @@ endif()
 
 # 安装配置
 if(hasParent)
+<<<<<<< HEAD
   set(bin_dest ${hasParent}/bin)
   install(TARGETS MeshConverter DESTINATION "${bin_dest}")
 endif()
 
 # 添加assert包含以修复编译错误
 target_compile_options(MeshConverter PRIVATE -include cassert)
+=======
+set(bin_dest ${hasParent}/bin)
+add_subdirectory(src/MeshOrient)
+install(TARGETS ${target_bin} DESTINATION "${bin_dest}")
+endif() 
+target_compile_options(MeshConverter PRIVATE -include cassert)
+>>>>>>> github/master
